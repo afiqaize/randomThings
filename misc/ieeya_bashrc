@@ -1,0 +1,35 @@
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+# Initialize ROOT 5.34/
+. /home/ieeya/root/bin/thisroot.sh
+
+# Initialize Java
+export JAVA_HOME="/opt/java/jdk1.8.0_11/"
+
+# some aliases
+alias lxplus='ssh -Y afiqaize@lxplus.cern.ch'
+alias lxplus5='ssh -Y afiqaize@lxplus5.cern.ch'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ll='ls -ltrh'
+alias la='ls -a'
+alias ssh='ssh -Y'
+
+# sudo related things
+# if user is not root, pass all commands via sudo #
+if [ $UID -ne 0 ]; then
+    alias reboot='sudo reboot'
+    alias update='sudo apt-get update && sudo apt-get upgrade'
+    alias install='sudo apt-get install'
+    alias upgrade='sudo apt-get dist-upgrade'
+fi
+
+# app shortcuts
+alias nemacs='emacs -nw'

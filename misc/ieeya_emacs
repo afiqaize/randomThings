@@ -1,0 +1,23 @@
+(custom-set-variables
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(inhibit-startup-screen t))
+(custom-set-faces
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ )
+
+;; text highlighting-copying stuff
+(transient-mark-mode 1) ; highlight text selection
+(delete-selection-mode 1) ; delete seleted text when typing
+(show-paren-mode 1) ; turn on paren match highlighting
+(setq mouse-drag-copy-region t) ; turn on highlight-autocopy to kill menu
+(setq x-select-enable-clipboard t) ; things in kill menu is pastable outside emacs too
+;(setq show-paren-style 'expression) ; highlight entire bracket expression
+
+;; tabbing and spaces
+(setq-default indent-tabs-mode nil) ; stop mixed tab and space
