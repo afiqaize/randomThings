@@ -13,6 +13,8 @@ fi
 # Initialize Java
 export JAVA_HOME="/opt/java/jdk1.8.0_11/"
 
+HISTFILESIZE=5000
+
 # some aliases
 alias lxplus='ssh -Y afiqaize@lxplus.cern.ch'
 alias lxplus5='ssh -Y afiqaize@lxplus5.cern.ch'
