@@ -18,6 +18,7 @@ HISTFILESIZE=5000
 # some aliases
 alias lxplus='ssh -Y afiqaize@lxplus.cern.ch'
 alias lxplus5='ssh -Y afiqaize@lxplus5.cern.ch'
+alias bastion='ssh -Y afiqaize@bastion.desy.de'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ll='ls -ltrh'
