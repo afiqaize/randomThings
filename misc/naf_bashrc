@@ -6,7 +6,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # User specific aliases and functions
-alias workarea='cd /afs/desy.de/user/a/afiqaize/cms'
+alias workarea='cd /nfs/dust/cms/user/afiqaize/cms/'
 alias nemacs='emacs -nw'
 alias ..='cd ..'
 alias ...='cd ../../'
@@ -18,6 +18,8 @@ alias ps='ps -fu $USER; date'
 
 # Go directly to work area
 workarea
+module use -a /afs/desy.de/group/cms/modulefiles
+module load cmssw
 
 # SSH Color
 # If not running interactively, don't do anything

@@ -7,25 +7,26 @@ if [ -f /etc/bashrc ]; then
         . /etc/bashrc
 fi
 
-# Initialize ROOT 5.34/
-. /home/ieeya/root/bin/thisroot.sh
-
 # Initialize Java
 export JAVA_HOME="/opt/java/jdk1.8.0_11/"
 
 HISTFILESIZE=5000
 
 # some aliases
-alias lxplus='ssh -Y afiqaize@lxplus.cern.ch'
-alias lxplus5='ssh -Y afiqaize@lxplus5.cern.ch'
-alias bastion='ssh -Y afiqaize@bastion.desy.de'
-alias nafcms='ssh -Y afiqaize@nafhh-cms02.desy.de'
+alias ssh='ssh -X'
+alias lxplus='ssh afiqaize@lxplus.cern.ch'
+alias lxplus5='ssh afiqaize@lxplus5.cern.ch'
+alias bastion='ssh afiqaize@bastion.desy.de'
+alias nafcms='ssh afiqaize@nafhh-cms06.desy.de'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias ll='ls -ltrh'
 alias la='ls -a'
-alias ssh='ssh -Y'
+alias ps="date; ps -fu $USER"
+alias root5env='source /home/ieeya/root53434/bin/thisroot.sh'
+alias root6env='source /home/ieeya/root60608/bin/thisroot.sh'
+alias nemacs='emacs -nw'
 
 # sudo related things
 # if user is not root, pass all commands via sudo #
@@ -35,6 +36,3 @@ if [ $UID -ne 0 ]; then
     alias install='sudo apt-get install'
     alias upgrade='sudo apt-get dist-upgrade'
 fi
-
-# app shortcuts
-alias nemacs='emacs -nw'
