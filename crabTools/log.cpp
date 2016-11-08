@@ -1,19 +1,27 @@
 // Trigger result log reader
-// Use with: g++ -o log log.cpp ----> ./log
+// Use with: g++ -o log log.cpp ----> ./log fileName
 
-#include<iostream>
-#include<fstream>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 
-int main() {
+int main(int argc, char *argv[]) {
 
-  char fileName[1000];
+  if(argc < 2) {
 
-  cout << "Insert target file name." << endl;
-  cin >> fileName;
+    cout << "Need an input file..." << endl;
+    return 0;
 
-  ifstream infile(fileName);
+  }
+
+  //char fileName[1000];
+
+  //cout << "Insert target file name." << endl;
+  //cin >> fileName;
+
+  //ifstream infile(fileName);
+  ifstream infile(argv[1]);
   float a1, a2, a3, a4, a5, a6, pasSum = 0., totSum = 0.;
   int count = 0;
   string textline;
@@ -39,5 +47,7 @@ int main() {
   cout << "Total passing event = " << (int) pasSum << endl;
   cout << "Total processed events = " << (int) totSum << endl;
   cout << "Total jobs = " << count << endl;
+
+  return 0;
 
 }
