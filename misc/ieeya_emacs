@@ -21,3 +21,7 @@
 
 ;; tabbing and spaces
 (setq-default indent-tabs-mode nil) ; stop mixed tab and space
+
+;; graphical printing interface - needs gtklp installed
+(setq lpr-command "gtklp")
+(setq ps-lpr-command "gtklp")
