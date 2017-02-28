@@ -1,3 +1,4 @@
+#!/bin/bash
 # .bashrc
 
 # Source global definitions
@@ -8,18 +9,35 @@ fi
 # User specific aliases and functions
 alias workarea='cd /nfs/dust/cms/user/afiqaize/cms/'
 alias nemacs='emacs -nw'
+alias voauth='voms-proxy-init -voms cms'
 alias ..='cd ..'
 alias ...='cd ../../'
 alias ....='cd ../../../'
 alias ll='ls -ltrh'
 alias la='ls -a'
-alias ssh='ssh -Y'
-alias ps='ps -fu $USER; date'
+alias ssh='ssh -X'
+alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
+alias psa='date; ps -fu $USER'
+#alias root5env='source /afs/cern.ch/sw/lcg/contrib/gcc/4.8.1/x86_64-slc6-gcc48-opt/setup.sh && source /cvmfs/cms.cern.ch/slc6_amd64_gcc481/lcg/root/5.34.22/bin/thisroot.sh'
+alias root5env='module load root/5.34'
+alias mg5env='. mg5amc240b_env.sh'
+alias das='python /afs/desy.de/user/a/afiqaize/das_client.py'
 
-# Go directly to work area
-workarea
+alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
+alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
+alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
+alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
+
+# Go directly to work area (sonas)
+if [ `hostname | grep "nafhh"` ]; then
+    workarea
+fi
+#source /afs/cern.ch/sw/lcg/contrib/gcc/4.6/x86_64-slc6-gcc46-opt/setup.sh
+#. sge-root/cell/common/settings.sh
 module use -a /afs/desy.de/group/cms/modulefiles
 module load cmssw
+module load git/1.9
 
 # SSH Color
 # If not running interactively, don't do anything

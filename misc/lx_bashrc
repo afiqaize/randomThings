@@ -9,7 +9,8 @@ fi
 alias workarea='cd /afs/cern.ch/work/a/afiqaize/'
 alias nemacs='emacs -nw'
 alias uienv='source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh'
-alias crabenv='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
 alias voauth='voms-proxy-init -voms cms'
 alias ..='cd ..'
 alias ...='cd ../../'
@@ -17,8 +18,13 @@ alias ....='cd ../../../'
 alias ll='ls -ltrh'
 alias la='ls -a'
 alias ssh='ssh -Y'
-alias ps='ps -fu $USER; date'
+alias psa='ps -fu $USER; date'
 alias lpr40='lpr -P 40-RB-HPCOR' # to print at this printer in B40
+alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
+alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
+alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
+alias das='python /afs/cern.ch/user/a/afiqaize/das_client.py'
+alias root5env='source /afs/cern.ch/sw/lcg/contrib/gcc/4.6/x86_64-slc6-gcc46-opt/setup.sh && source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.34.14/x86_64-slc6-gcc46-opt/root/bin/thisroot.sh'
 
 # Go directly to work area
 workarea
