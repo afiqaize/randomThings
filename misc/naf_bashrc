@@ -7,7 +7,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # User specific aliases and functions
-alias workarea='cd /nfs/dust/cms/user/afiqaize/cms/'
+alias workarea='cd ~/_/cms/' #symlink to /nfs/dust/cms/user/afiqaize/cms/
 alias nemacs='emacs -nw'
 alias voauth='voms-proxy-init -voms cms'
 alias ..='cd ..'
@@ -15,11 +15,14 @@ alias ...='cd ../../'
 alias ....='cd ../../../'
 alias ll='ls -ltrh'
 alias la='ls -a'
+alias l1='ls -1'
 alias ssh='ssh -X'
 alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
 alias psa='date; ps -fu $USER'
+
 #alias root5env='source /afs/cern.ch/sw/lcg/contrib/gcc/4.8.1/x86_64-slc6-gcc48-opt/setup.sh && source /cvmfs/cms.cern.ch/slc6_amd64_gcc481/lcg/root/5.34.22/bin/thisroot.sh'
 alias root5env='module load root/5.34'
+alias root6env='module load root6/6.02'
 alias mg5env='. mg5amc240b_env.sh'
 alias das='python /afs/desy.de/user/a/afiqaize/das_client.py'
 
@@ -28,6 +31,34 @@ alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
+
+jobdel () {
+    if [ -z "$1" ]; then
+        jobStr="afiqaize"
+    else
+        jobStr=$1
+    fi
+
+    qstat -u afiqaize | grep ${jobStr} | awk '{print $1}' | xargs qdel -f
+}
+
+makeSelList () {
+    if [ -z "$1" ]; then
+        echo 'Base directory not set, unable to find ntuples for selectionList text files!!'
+        echo 'Try: /nfs/dust/cms/group/topcmsdesy/ntuple13tev/2017_04_19_TAG_V035'
+    else
+        baseDir=$1
+        rm selectionList*.txt
+
+        l1 ${baseDir}/*.root >& selectionList_all.txt
+        l1 ${baseDir}/**/*.root >> selectionList_all.txt
+
+        grep ttbarsignalplustau.root selectionList_all.txt >& selectionList_smtt.txt
+        cp selectionList_smtt.txt selectionList_phitt.txt
+        grep Htottbar selectionList_all.txt | grep signalplustau >> selectionList_phitt.txt
+        echo 'Done making selectionList text files from directory'${baseDir}
+    fi
+}
 
 # Go directly to work area (sonas)
 if [ `hostname | grep "nafhh"` ]; then
@@ -38,6 +69,12 @@ fi
 module use -a /afs/desy.de/group/cms/modulefiles
 module load cmssw
 module load git/1.9
+
+# Beautiful printout of the current git branch when in repository:
+function parse_git_branch_and_add_brackets {
+  git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\[\1\]/'
+}
+PS1="${debian_chroot:+($debian_chroot)}\u@\h:\w\[\033[0;32m\]\$(parse_git_branch_and_add_brackets)\[\033[0m\]\$ "
 
 # SSH Color
 # If not running interactively, don't do anything
