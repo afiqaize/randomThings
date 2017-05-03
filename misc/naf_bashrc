@@ -54,7 +54,7 @@ qjob () {
 makeSelList () {
     if [ -z "$1" ]; then
         echo 'Base directory not set, unable to find ntuples for selectionList text files!!'
-        echo 'Try: /nfs/dust/cms/group/topcmsdesy/ntuple13tev/2017_04_19_TAG_V035'
+        echo 'Try: /nfs/dust/cms/group/topcmsdesy/ntuple13tev/2017_04_19_TAG_V035 (dirToExclude1 dirToExclude2 ...)'
     else
         baseDir=$1
         rm selectionList*.txt
