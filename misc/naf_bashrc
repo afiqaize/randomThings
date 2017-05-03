@@ -62,10 +62,17 @@ makeSelList () {
         l1 ${baseDir}/*.root >& selectionList_all.txt
         l1 ${baseDir}/**/*.root >> selectionList_all.txt
 
+        for ((i = 2; i <= $#; i++)); do
+            eval arg=\$$i
+            echo 'Excluding files in directory '${arg}' from selectionList_all.txt'
+            toExc=${baseDir}/${arg}
+            sed -i "s?${toExc}?#${toExc}?g" selectionList_all.txt
+        done
+
         grep ttbarsignalplustau.root selectionList_all.txt >& selectionList_smtt.txt
         cp selectionList_smtt.txt selectionList_phitt.txt
         grep Htottbar selectionList_all.txt | grep signalplustau >> selectionList_phitt.txt
-        echo 'Done making selectionList text files from directory'${baseDir}
+        echo 'Done making selectionList text files from directory '${baseDir}
     fi
 }
 
