@@ -32,14 +32,23 @@ alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 
-jobdel () {
-    if [ -z "$1" ]; then
+# Simple utility qstat-based functions
+qjob () {
+    if [ -z "$2" ]; then
         jobStr="afiqaize"
     else
-        jobStr=$1
+        jobStr=$2
     fi
 
-    qstat -u afiqaize | grep ${jobStr} | awk '{print $1}' | xargs qdel -f
+    if [ "$1" = "del" ]; then
+        qstat -u afiqaize | grep ${jobStr} | awk '{print $1}' | xargs qdel -f
+    elif [ "$1" = "stat" ]; then
+        qstat -u afiqaize
+    elif [ "$1" = "count" ]; then
+        qstat -u afiqaize | grep ${jobStr} | wc -l
+    else
+        echo 'Mode not understood. Try: qjob (del/stat/count) jobStr'
+    fi
 }
 
 makeSelList () {
