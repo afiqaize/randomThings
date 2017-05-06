@@ -1,0 +1,16 @@
+#!/usr/bin/expect
+
+### For automated pass input into ssh
+### Goes into /usr/bin/exp, ensure expect is already installed: apt-get install expect
+### Usage: exp <password> ssh <anything>
+### Usage: exp <password> scp <anysrc> <anydst>
+
+set timeout 20
+
+set cmd [lrange $argv 1 end]
+set password [lindex $argv 0]
+
+eval spawn $cmd
+expect "assword:"
+send "$password\r";
+interact
