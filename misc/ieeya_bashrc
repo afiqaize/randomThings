@@ -30,19 +30,26 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias ll='ls -ltrh'
 alias la='ls -a'
-alias ps="date; ps -fu $USER"
+alias psa="date; ps -fu $USER"
 alias root5env='source /home/afiqaize/root53434/bin/thisroot.sh'
 alias root6env='source /home/afiqaize/root60608/bin/thisroot.sh'
 alias nemacs='emacs -nw'
+alias startPO='cd /home/afiqaize/Downloads/Files/pokemon-online/bin/; ./Pokemon-Online > /dev/null 2>&1 & cd -'
 
 # sudo related things
 # if user is not root, pass all commands via sudo #
 if [ $UID -ne 0 ]; then
     alias reboot='sudo reboot'
-    alias update='sudo apt-get update && sudo apt-get upgrade'
-    alias install='sudo apt-get install'
-    alias upgrade='sudo apt-get dist-upgrade'
+    alias aptUpdate='sudo apt-get update && sudo apt-get upgrade'
+    alias aptInstall='sudo apt-get install'
+    alias aptUpgrade='sudo apt-get dist-upgrade'
+else
+    alias aptUpdate='apt-get update && apt-get upgrade'
+    alias aptInstall='apt-get install'
+    alias aptUpgrade='apt-get dist-upgrade'
 fi
+
+### Below this line to be taken out if running on linux Mint ###
 
 # SSH Color
 # If not running interactively, don't do anything
