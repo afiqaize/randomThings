@@ -1,0 +1,19 @@
+If a system migration is to be performed; follow these steps:
+
+0- DO NOT MOVE TO THE NEXT STEPS UNTIL THE CURRENT ONE IS COMPLETE AND TESTED
+
+1- Install the OS of choice (Linux Mint, etc); preferably newest fresh install
+ ---> Perform whatever needed updates
+ ---> Ensure ALL the necessary hardwares are working: especially Nvidia cards (optirun, bumblebee etc)
+ ---> Put in all the tools like bashrc, 'expect' etc in this repo where they belong
+
+2- Prepare the coding environment: emacs and latex
+ ---> Newest emacs should do, then tack on the .emacs file provided here
+ ---> For latex: https://github.com/scottkosty/install-tl-ubuntu is the best known instructions
+
+3- HEP needed tools: install ROOT and other suites
+ ---> At least latest 5.34 and 6.xx is needed to run your code and reproduce things
+ ---> FastJet could be of interest; Pythia8, MadGraph5, JaxoDraw...
+ ---> Sometimes needs a cmake update (e.g. ROOT6); get these as needed
+
+4- Done. Fingers crossed for a functional work system
