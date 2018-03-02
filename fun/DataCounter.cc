@@ -23,7 +23,7 @@ DataCounter<T>::DataCounter(const std::string &name_, const std::map<std::string
 
 
 
-template <typename T> void DataCounter<T>::printBins()
+template <typename T> void DataCounter<T>::printBins() const
 {
   std::cout << "### =================================== ###" << std::endl;
   std::cout << "Bins for DataCounter object with name " << name << " are:" << std::endl;
@@ -151,7 +151,7 @@ template <typename T> void DataCounter<T>::updateDataMap()
 
 
 
-template <typename T> const std::string DataCounter<T>::findBin(const std::map<std::string, T> &m_var)
+template <typename T> const std::string DataCounter<T>::findBin(const std::map<std::string, T> &m_var) const
 {
   std::string binStr = "";
   for (typename std::map<std::string, T>::const_iterator i_var = m_var.begin(); i_var != m_var.end(); ++i_var) {

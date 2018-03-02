@@ -32,7 +32,7 @@ template <typename T> class DataCounter {
   DataCounter(const std::string &name_, const std::map<std::string, std::vector<T> > &mv_bin_, const bool doSumWgt2_ = false);
 
   /// print all the bin labels
-  void printBins();
+  void printBins() const;
 
   /// fill the data map
   void fillDataMap(const std::map<std::string, T> &m_var, const double weight = 1.);
@@ -61,7 +61,7 @@ template <typename T> class DataCounter {
   void updateDataMap();
 
   /// find the bins for a given map var-val
-  const std::string findBin(const std::map<std::string, T> &m_var);
+  const std::string findBin(const std::map<std::string, T> &m_var) const;
 
   std::string name;
   std::map<std::string, std::vector<T> > mv_bin;
