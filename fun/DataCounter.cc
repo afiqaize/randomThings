@@ -1,10 +1,12 @@
-#include "DataCounter.h"
+//#include "DataCounter.h"
+#include "GeneratorInterface/RivetInterface/interface/DataCounter.h"
 
 template <typename T> 
 DataCounter<T>::DataCounter(const std::string &name_, const std::map<std::string, std::vector<T> > &mv_bin_, const bool doSumWgt2_):
   name(name_),
   mv_bin(mv_bin_),
-  doSumWgt2(doSumWgt2_)
+  doSumWgt2(doSumWgt2_),
+  doStateUpdate(true)
 {
   bool isValid = true;
   std::for_each(mv_bin.begin(), mv_bin.end(), [&](const std::pair<std::string, std::vector<T> > &pv_bin) {
@@ -18,7 +20,30 @@ DataCounter<T>::DataCounter(const std::string &name_, const std::map<std::string
 
   this->createBins(mv_bin.begin(), "");
   this->createDataMap();
-  doStateUpdate = true;
+}
+
+
+
+template <typename T> DataCounter<T>& DataCounter<T>::operator = (const DataCounter<T> &dat)
+{
+  if (this != &dat) {
+    name = dat.name;
+    mv_bin = dat.mv_bin;
+    doSumWgt2 = dat.doSumWgt2;
+  }
+
+  if (!mv_bin.empty()) {
+    this->createBins(mv_bin.begin(), "");
+    this->createDataMap();
+  }
+
+  return *this;
+}
+
+
+template <typename T> const unsigned DataCounter<T>::nBins() const
+{
+  return s_binStr.size();
 }
 
 
@@ -59,12 +84,12 @@ template <typename T> const std::map<std::string, Data>* DataCounter<T>::getData
 
 
 
-template <typename T> const int DataCounter<T>::getEntries()
+template <typename T> const unsigned DataCounter<T>::getEntries()
 {
   if (doStateUpdate)
     this->updateDataMap();
 
-  int entries = 0;
+  unsigned entries = 0;
   std::for_each(s_binStr.begin(), s_binStr.end(), [&](const std::string &bin) {
       entries += m_data.at(bin).entry;
     });
@@ -79,7 +104,7 @@ template <typename T> const double DataCounter<T>::getIntegral()
   if (doStateUpdate)
     this->updateDataMap();
 
-  double integral = 0;
+  double integral = 0.;
   std::for_each(s_binStr.begin(), s_binStr.end(), [&](const std::string &bin) {
       integral += m_data.at(bin).value;
     });
@@ -95,7 +120,7 @@ template <typename T> void DataCounter<T>::printDataMap()
     this->updateDataMap();
 
   std::cout << "### =================================== ###" << std::endl;
-  std::cout << "DataCounter object with name " << name << 
+  std::cout << std::setprecision(11) << "DataCounter object with name " << name << 
     " has entries " << this->getEntries() << " and integral " << this->getIntegral() << std::endl;
 
   std::for_each(s_binStr.begin(), s_binStr.end(), [&](const std::string &bin) {
@@ -108,11 +133,30 @@ template <typename T> void DataCounter<T>::printDataMap()
 
 
 
+template <typename T> void DataCounter<T>::clear()
+{
+  s_binStr.clear();
+
+  m_sumEnt.clear();
+  m_sumWgt.clear();
+  m_sumWgt2.clear();
+  m_data.clear();
+}
+
+
+
 template <typename T> 
 void DataCounter<T>::createBins(typename std::map<std::string, std::vector<T> >::const_iterator iv_bin, const std::string &iniStr)
 {
-  for (unsigned iB = 1; iB < iv_bin->second.size(); ++iB) {
-    std::string varStr = iv_bin->first + "_" + std::to_string(iB);
+  const unsigned nB = iv_bin->second.size();
+
+  for (unsigned iB = 1; iB < nB; ++iB) {
+    const int n0 = std::floor(std::log10(nB - 1)) - std::floor(std::log10(iB)); // how many 0s are needed
+    std::string pre0 = "";
+    for (int i0 = 0; i0 < n0; ++i0)
+      pre0 = pre0 + "0";
+
+    std::string varStr = iv_bin->first + "_" + pre0 + std::to_string(iB);
     std::string binStr = (iniStr == "") ? varStr : iniStr + "--" + varStr;
 
     // terminating condition
@@ -133,6 +177,8 @@ template <typename T> void DataCounter<T>::createDataMap()
 
       if (doSumWgt2)
         m_sumWgt2[bin] = 0.;
+
+      m_data[bin] = Data(0, 0., 0.);
     });
 }
 
@@ -142,7 +188,7 @@ template <typename T> void DataCounter<T>::updateDataMap()
 {
   doStateUpdate = false;
   std::for_each(s_binStr.begin(), s_binStr.end(), [&](const std::string &bin) {
-      const int ent = m_sumEnt[bin];
+      const unsigned ent = m_sumEnt[bin];
       const double val = m_sumWgt[bin], err = (doSumWgt2) ? std::sqrt(m_sumWgt2[bin]) : std::sqrt(m_sumWgt[bin]);
 
       m_data[bin] = Data(ent, val, err);
@@ -155,11 +201,22 @@ template <typename T> const std::string DataCounter<T>::findBin(const std::map<s
 {
   std::string binStr = "";
   for (typename std::map<std::string, T>::const_iterator i_var = m_var.begin(); i_var != m_var.end(); ++i_var) {
+    if (mv_bin.count(i_var->first) != 1) continue;
+
     // find the first element that isnt greater than var value
     auto iB = std::lower_bound( mv_bin.at(i_var->first).begin(), mv_bin.at(i_var->first).end(), i_var->second );
 
+    // decide the 0 padding needed and make them
+    const unsigned nB = mv_bin.at(i_var->first).size();
+    const unsigned dB = std::distance(mv_bin.at(i_var->first).begin(), iB);
+
+    const int n0 = std::floor(std::log10(nB - 1)) - std::floor(std::log10(dB)); // how many 0s are needed
+    std::string pre0 = "";
+    for (int i0 = 0; i0 < n0; ++i0)
+      pre0 = pre0 + "0";
+
     // create bin string base on bin index
-    std::string varStr = i_var->first + "_" + std::to_string( std::distance(mv_bin.at(i_var->first).begin(), iB) );
+    std::string varStr = i_var->first + "_" + pre0 + std::to_string(dB);
 
     // merge with bin string of other var
     binStr = (binStr == "") ? varStr : binStr + "--" + varStr;
