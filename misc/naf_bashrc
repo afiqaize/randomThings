@@ -1,15 +1,17 @@
 #!/bin/bash
-# .bashrc
+## .bashrc
 
-# Source global definitions
+## if not running interactively, don't do anything
+[ -z "$PS1" ] && return
+
+## source global definitions
 if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-# User specific aliases and functions
-alias workarea='cd ~/_/cms/' #symlink to /nfs/dust/cms/user/afiqaize/cms/
+## user specific aliases and functions
+alias workarea='cd ~/_/cms/' # symlink to /nfs/dust/cms/user/afiqaize/cms/
 alias nemacs='emacs -nw'
-alias voauth='voms-proxy-init -voms cms'
 alias ..='cd ..'
 alias ...='cd ../../'
 alias ....='cd ../../../'
@@ -20,37 +22,181 @@ alias ssh='ssh -X'
 alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
 alias psa='date; ps -fu $USER'
 
-#alias root5env='source /afs/cern.ch/sw/lcg/contrib/gcc/4.8.1/x86_64-slc6-gcc48-opt/setup.sh && source /cvmfs/cms.cern.ch/slc6_amd64_gcc481/lcg/root/5.34.22/bin/thisroot.sh'
-alias root5env='module load root/5.34'
-alias root6env='module load root6/6.02'
-alias mg5env='. mg5amc240b_env.sh'
-alias das='python /afs/desy.de/user/a/afiqaize/das_client.py'
+## for when working with cmssw - try to mimic cmsenv syntax
+alias cmsmodule='module use -a /afs/desy.de/group/cms/modulefiles && module load cmssw && module load git/1.9'
 
+## buncha grid computing stuff
+alias voauth='voms-proxy-init -voms cms'
 alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
 alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 
-# Simple utility qstat-based functions
-qjob () {
-    if [ -z "$2" ]; then
-        jobStr="afiqaize"
-    else
-        jobStr=$2
+## go directly to work area (sonas)
+if [ `hostname | grep "naf-cms"` ] || [ `hostname | grep "nafhh-cms"` ]; then
+    workarea
+fi
+
+## sync'd up with many one-liner HTC submission
+condorDir="/nfs/dust/cms/user/afiqaize/cms/sft/condor"
+
+## general case of picking random softwares off cvmfs
+grab_from_cvmfs () {
+    local sftName=$1
+    local sftVer=$2
+    local sftLoad=$3
+
+    if [ -z ${sftName} ] || [ -z ${sftVer} ]; then
+        echo 'Software name and version to be picked up must be provided!!'
+        echo 'Usage: grab_from_cvmfs SOFTWARE VERSION LOADTYPE'
+        echo 'SOFTWARE is obvious, it must be available in /cvmfs/sft.cern.ch/lcg/releases/'
+        echo 'VERSION includes the hash assigned by cvmfs e. g. for ROOT: 6.14.02-7ef3a'
+        echo 'LOADTYPE may be lib, path or all: updating LD_LIBRARY_PATH, PATH or both'
+        echo 'Note that some softwares (e. g. gcc, ROOT) have hardcoded load settings ignoring LOADTYPE'
+        echo
+        return
     fi
 
-    if [ "$1" = "del" ]; then
-        qstat -u afiqaize | grep ${jobStr} | awk '{print $1}' | xargs qdel -f
-    elif [ "$1" = "stat" ]; then
-        qstat -u afiqaize
-    elif [ "$1" = "count" ]; then
-        qstat -u afiqaize | grep ${jobStr} | wc -l
+    if [ "${sftLoad}" != 'lib' ] && [ "${sftLoad}" != 'path' ] && [ "${sftLoad}" != 'all' ]; then
+        sftLoad='lib'
+    fi
+
+    ## well where else do we take it from
+    local sftSrc='/cvmfs/sft.cern.ch/lcg/releases'
+    local machineArch=$(/cvmfs/cms.cern.ch/bin/cmsos)
+    machineArch=$(uname -p)"-"${machineArch%%_*}
+
+    local gccDir=$(which gcc)
+    if [ ${sftName} != 'gcc' ] && [ -z $(echo ${gccDir} | grep ${sftSrc}) ]; then
+        echo 'GCC compiler is not from '${sftSrc}'!! Update by doing grab_from_cvmfs gcc VERSION'
+        grab_from_cvmfs
+
+        echo 'Correct version might be found by consulting the content of '${sftSrc}'/'${sftName}'/'${sftVer}
+        echo 'There should be a dir corresponding to the architecture '${machineArch}
+        echo
+        return
+    fi
+
+    # define the commands to load the desired software
+    local sftDir=${sftSrc}
+    local sftCmd=()
+
+    ## assign the directories to look for
+    if [ ${sftName} = 'gcc' ]; then
+        sftDir=${sftSrc}'/'${sftName}'/'${sftVer}'/'${machineArch}
     else
-        echo 'Mode not understood. Try: qjob (del/stat/count) jobStr'
+        sftDir=${sftDir}'/'${sftName}'/'${sftVer}'/'${LCGPLAT}
+    fi
+
+    local sftDep=''
+    local depList=()
+
+    if [ ! -d ${sftDir} ]; then
+        echo 'Software '${sftName}' '${sftVer}' not found at directory '${sftDir}
+        return
+    else
+        echo 'Picking up '${sftName}' '${sftVer}' from '${sftDir}'...'
+
+        ## for some special softwares, define the commands here (and the checks! (which confusingly can't be OR'd))
+        if [ ${sftName} = 'gcc' ]; then
+            if [ -z ${LCGPLAT} ]; then
+                sftCmd=('source' "${sftDir}/setup.sh")
+            elif [ ${LCGPLAT} != $(source "${sftDir}/setup.sh"; echo ${LCGPLAT}) ]; then
+                sftCmd=('source' "${sftDir}/setup.sh")
+            fi
+        elif [ ${sftName} = 'ROOT' ]; then
+            if [ -z ${ROOTSYS} ]; then
+                sftCmd=('source' "${sftDir}/bin/thisroot.sh")
+            elif [ ${ROOTSYS} != $(source "${sftDir}/bin/thisroot.sh"; echo ${ROOTSYS}) ]; then
+                sftCmd=('source' "${sftDir}/bin/thisroot.sh")
+            fi
+        fi
+
+        ## otherwise assume it's just about updating LD_LIB_PATH and/or PATH
+        if [ ${#sftCmd[@]} -lt 1 ]; then
+            echo 'Pickup mode: '${sftLoad}
+            if [ ${sftLoad} = 'lib' ] && [ -d ${sftDir}/lib ]; then
+                if [ -z $(echo ${LD_LIBRARY_PATH} | grep -e "${sftDir}/lib" ) ]; then
+                    sftCmd=('export' "LD_LIBRARY_PATH=${sftDir}/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}")
+                fi
+            elif [ ${sftLoad} = 'path' ] && [ -d ${sftDir}/bin ]; then
+                if [ -z $(echo ${PATH} | grep -e "${sftDir}/bin" ) ]; then
+                    sftCmd=('export' "PATH=${sftDir}/bin/${PATH:+:$PATH}")
+                fi
+            elif [ ${sftLoad} = 'all' ]; then
+                if [ -z $(echo ${LD_LIBRARY_PATH} | grep -e "${sftDir}/lib" ) ] && [ -d ${sftDir}/lib ]; then
+                    grab_from_cvmfs ${sftName} ${sftVer} 'lib'
+                fi
+
+                if [ -z $(echo ${PATH} | grep -e "${sftDir}/bin" ) ] && [ -d ${sftDir}/bin ]; then
+                    grab_from_cvmfs ${sftName} ${sftVer} 'path'
+                fi
+            fi
+        fi
+
+        if [ ${#sftCmd[@]} -lt 1 ]; then
+            echo 'The request and subsequent checks resulted in to nothing to be done...'
+            echo
+            return
+        fi
+
+        "${sftCmd[@]}"
+
+        if [ -f ${sftDir}"/.buildinfo_${sftName}.txt" ]; then
+            echo ${sftName}' '${sftVer}' might have dependencies, listing them up here...'
+
+            sftDep=$(cat ${sftDir}"/.buildinfo_${sftName}.txt" | tr -d '[:space:]')
+            sftDep=${sftDep##*DEPENDS:}
+
+            if [ ${sftDep} ]; then
+                depList=(${sftDep//,/ })
+                for iDep in "${depList[@]}"; do
+                    ## this recursive loading is monstrous and most definitely will screw stuff up
+                    #grab_from_cvmfs ${iDep%%-*} ${iDep#*-} 'lib'
+
+                    echo ${iDep%%-*} ${iDep#*-}
+                done
+            fi
+
+            echo 'Please note the limited automatization; the list may not be perfect!!'
+            echo 'Do cat '${sftDir}"/.buildinfo_${sftName}.txt"' to be sure nothing is amiss...'
+        fi
+        echo
     fi
 }
 
+## and now implement some common grabs in terms of the above!
+rootenv () {
+    local whatToGrab=$1
+    if [ -z ${whatToGrab} ]; then
+        echo 'Which ROOT to grab if nothing is specified?'
+        return
+    fi
+
+    if [ ${whatToGrab} = '5' ] || [ ${whatToGrab} = '5.34' ]; then
+        grab_from_cvmfs gcc 4.9.3
+        grab_from_cvmfs ROOT 5.34.25-8ef6d
+    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
+        grab_from_cvmfs gcc 6.2.0
+        grab_from_cvmfs GSL 2.1-36ee5
+        grab_from_cvmfs tbb 2018_U1-d3621
+        grab_from_cvmfs blas 20110419-f373c
+        grab_from_cvmfs ROOT 6.14.00-bc766
+    elif [ ${whatToGrab} = 'naf' ]; then
+        cmsmodule
+        module load python/2.7
+        source /cvmfs/sft.cern.ch/lcg/releases/gcc/6.2.0/x86_64-slc6/setup.sh
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cvmfs/sft.cern.ch/lcg/releases/tbb/2017_U5-8f5dc/x86_64-slc6-gcc62-opt/lib/
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cvmfs/sft.cern.ch/lcg/releases/blas/20110419-e1974/x86_64-slc6-gcc62-opt/lib/
+        source /nfs/dust/cms/user/afiqaize/cms//sft/root61294/bin/thisroot.sh
+    fi
+}
+
+## go up multiple dirs: cdup N to go up N levels
+cdup () { pushd .; echo; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; echo; }
+
+## make selection list txt files
 makeSelList () {
     if [ -z "$1" ]; then
         echo 'Base directory not set, unable to find ntuples for selectionList text files!!'
@@ -66,52 +212,45 @@ makeSelList () {
             eval arg=\$$i
             echo 'Excluding files in directory '${arg}' from selectionList_all.txt'
             toExc=${baseDir}/${arg}
-            sed -i "s?${toExc}?#${toExc}?g" selectionList_all.txt
+            sed -i "s?${toExc}?#${toExc}?g" selectionList_all.txt # comment, still wanna know they exist
         done
 
-        grep ttbarsignalplustau.root selectionList_all.txt >& selectionList_smtt.txt
-        cp selectionList_smtt.txt selectionList_phitt.txt
-        grep Htottbar selectionList_all.txt | grep signalplustau >> selectionList_phitt.txt
+        grep 'ttbarsignalplustau' selectionList_all.txt | grep -v 'fromDilepton' | grep -v '#' >& selectionList_sm.txt # w/ syst
+
+        grep 'ttbarsignalplustau.root' selectionList_all.txt | grep -v '#' >& selectionList_ah_sm.txt # w/o syst, mainly for BDT etc
+        grep 'Htottbar' selectionList_all.txt | grep 'signalplustau' >> selectionList_ah_sm.txt
+
+        grep 'Htottbar' selectionList_all.txt >& selectionList_ah_ri.txt # everything signal
+
+        grep -v 'Htottbar' selectionList_all.txt | grep -v '#' >& selectionList_bg.txt # everything non-signal
+
         echo 'Done making selectionList text files from directory '${baseDir}
     fi
 }
 
-# Go directly to work area (sonas)
-if [ `hostname | grep "nafhh"` ]; then
-    workarea
-fi
-#source /afs/cern.ch/sw/lcg/contrib/gcc/4.6/x86_64-slc6-gcc46-opt/setup.sh
-#. sge-root/cell/common/settings.sh
-module use -a /afs/desy.de/group/cms/modulefiles
-module load cmssw
-module load git/1.9
-
-# Beautiful printout of the current git branch when in repository:
+## beautiful printout of the current git branch when in repository:
 function parse_git_branch_and_add_brackets {
   git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\[\1\]/'
 }
 PS1="${debian_chroot:+($debian_chroot)}\u@\h:\w\[\033[0;32m\]\$(parse_git_branch_and_add_brackets)\[\033[0m\]\$ "
 
-# SSH Color
-# If not running interactively, don't do anything
-[ -z "$PS1" ] && return
-
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
+## SSH Color
+## check the window size after each command and, if necessary,
+## update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
-# set variable identifying the chroot you work in (used in the prompt below)
+## set variable identifying the chroot you work in (used in the prompt below)
 if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
 use_color=true
 
-# Set colorful PS1 only on colorful terminals.
-# dircolors --print-database uses its own built-in database
-# instead of using /etc/DIR_COLORS.  Try to use the external file
-# first to take advantage of user additions.  Use internal bash
-# globbing instead of external grep binary.
+## set colorful PS1 only on colorful terminals.
+## dircolors --print-database uses its own built-in database
+## instead of using /etc/DIR_COLORS.  Try to use the external file
+## first to take advantage of user additions.  Use internal bash
+## globbing instead of external grep binary.
 safe_term=${TERM//[^[:alnum:]]/?}   # sanitize TERM
 match_lhs=""
 [[ -f ~/.dir_colors   ]] && match_lhs="${match_lhs}$(<~/.dir_colors)"
@@ -122,7 +261,7 @@ match_lhs=""
 [[ $'\n'${match_lhs} == *$'\n'"TERM "${safe_term}* ]] && use_color=true
 
 if ${use_color} ; then
-        # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
+        ## enable colors for ls, etc.  Prefer ~/.dir_colors #64489
         if type -P dircolors >/dev/null ; then
                 if [[ -f ~/.dir_colors ]] ; then
                         eval $(dircolors -b ~/.dir_colors)
@@ -141,18 +280,18 @@ if ${use_color} ; then
         alias grep='grep --colour=auto'
 else
         if [[ ${EUID} == 0 ]] ; then
-                # show root@ when we don't have colors
+                ## show root@ when we don't have colors
                 PS1='\u@\h \W \$ '
         else
                 PS1='\u@\h \w \$ '
         fi
 fi
 
-# Try to keep environment pollution down, EPA loves us.
+## try to keep environment pollution down, EPA loves us.
 unset use_color safe_term match_lhs
 
-# Commented out, don't overwrite xterm -T "title" -n "icontitle" by default.
-# If this is an xterm set the title to user@host:dir
+## commented out, don't overwrite xterm -T "title" -n "icontitle" by default.
+## if this is an xterm set the title to user@host:dir
 #case "$TERM" in
 #xterm*|rxvt*)
 #    PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"'
@@ -161,15 +300,15 @@ unset use_color safe_term match_lhs
 #    ;;
 #esac
 
-# enable bash completion in interactive shells
+## enable bash completion in interactive shells
 if [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
 fi
 
-# if the command-not-found package is installed, use it
+## if the command-not-found package is installed, use it
 if [ -x /usr/lib/command-not-found ]; then
     function command_not_found_handle {
-	        # check because c-n-f could've been removed in the meantime
+	        ## check because c-n-f could've been removed in the meantime
                 if [ -x /usr/lib/command-not-found ]; then
 		       /usr/bin/python /usr/lib/command-not-found -- $1
                    return $?
