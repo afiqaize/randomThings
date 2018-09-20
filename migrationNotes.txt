@@ -16,4 +16,4 @@ If a system migration is to be performed; follow these steps:
  ---> FastJet could be of interest; Pythia8, MadGraph5, JaxoDraw...
  ---> Sometimes needs a cmake update (e.g. ROOT6); get these as needed
 
-4- Done. Fingers crossed for a functional work system
+4- Done. Copy the backup files and fingers crossed work can start
