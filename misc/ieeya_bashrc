@@ -3,18 +3,21 @@
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
-# If not running interactively, don't do anything
-[ -z "$PS1" ] && return
+# updated 05/10/2018 based on Ubuntu 18.04
 
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-        . /etc/bashrc
-fi
+# if not running interactively, don't do anything
+case $- in
+    *i*) ;;
+    *) return;;
+esac
 
+# don't put duplicate lines or lines starting with space in the history
+# see bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=2500
 HISTFILESIZE=5000
-
-# Initialize Java
-#export JAVA_HOME="/opt/java/jdk1.8.0_11/"
 
 # some aliases
 alias ssh='ssh -X'
@@ -25,9 +28,6 @@ alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
-alias ll='ls -ltrh'
-alias la='ls -a'
-alias l1='ls -1'
 alias psa="date; ps -fu $USER"
 alias nemacs='emacs -nw'
 alias startPO='cd /home/afiqaize/Downloads/Files/pokemon-online/bin/; ./Pokemon-Online > /dev/null 2>&1 & cd -'
@@ -51,82 +51,50 @@ rootenv () {
     fi
 
     if [ ${whatToGrab} = '5' ] || [ ${whatToGrab} = '5.34' ]; then
-        source /home/afiqaize/root53434/bin/thisroot.sh
-    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.06' ]; then
-        source /home/afiqaize/root60608/bin/thisroot.sh
+        source /home/afiqaize/root-5-34-38/bin/thisroot.sh
+    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
+        source /home/afiqaize/root-6-14-04/bin/thisroot.sh
     fi
 }
 
-# sudo related things
-# if user is not root, pass all commands via sudo #
-if [ $UID -ne 0 ]; then
-    alias reboot='sudo reboot'
-    alias aptUpdate='sudo apt-get update && sudo apt-get upgrade'
-    alias aptInstall='sudo apt-get install'
-    alias aptUpgrade='sudo apt-get dist-upgrade'
-else
-    alias aptUpdate='apt-get update && apt-get upgrade'
-    alias aptInstall='apt-get install'
-    alias aptUpgrade='apt-get dist-upgrade'
-fi
-
-### Below this line to be taken out if running on linux Mint ###
-
-# SSH Color
 # check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
+# update the values of LINES and COLUMNS
 shopt -s checkwinsize
+
+# if set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
 # set variable identifying the chroot you work in (used in the prompt below)
 if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-use_color=true
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
 
-# Set colorful PS1 only on colorful terminals.
-# dircolors --print-database uses its own built-in database
-# instead of using /etc/DIR_COLORS.  Try to use the external file
-# first to take advantage of user additions.  Use internal bash
-# globbing instead of external grep binary.
-safe_term=${TERM//[^[:alnum:]]/?}   # sanitize TERM
-match_lhs=""
-[[ -f ~/.dir_colors   ]] && match_lhs="${match_lhs}$(<~/.dir_colors)"
-[[ -f /etc/DIR_COLORS ]] && match_lhs="${match_lhs}$(</etc/DIR_COLORS)"
-[[ -z ${match_lhs}    ]] \
-        && type -P dircolors >/dev/null \
-        && match_lhs=$(dircolors --print-database)
-[[ $'\n'${match_lhs} == *$'\n'"TERM "${safe_term}* ]] && use_color=true
+# uncomment for a colored prompt, if the terminal has the capability
+force_color_prompt=yes
 
-if ${use_color} ; then
-        # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
-        if type -P dircolors >/dev/null ; then
-                if [[ -f ~/.dir_colors ]] ; then
-                        eval $(dircolors -b ~/.dir_colors)
-                elif [[ -f /etc/DIR_COLORS ]] ; then
-                        eval $(dircolors -b /etc/DIR_COLORS)
-                fi
-        fi
-
-        if [[ ${EUID} == 0 ]] ; then
-                PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\h\[\033[01;34m\] \W \$\[\033[00m\] '
-        else
-                PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-        fi
-
-        alias ls='ls --color=auto'
-        alias grep='grep --colour=auto'
-else
-        if [[ ${EUID} == 0 ]] ; then
-                # show root@ when we don't have colors
-                PS1='\u@\h \W \$ '
-        else
-                PS1='\u@\h \w \$ '
-        fi
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
 fi
 
-# Try to keep environment pollution down, EPA loves us.
-unset use_color safe_term match_lhs
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
 
 # Commented out, don't overwrite xterm -T "title" -n "icontitle" by default.
 # If this is an xterm set the title to user@host:dir
@@ -138,9 +106,39 @@ unset use_color safe_term match_lhs
 #    ;;
 #esac
 
-# enable bash completion in interactive shells
-if [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# colored GCC warnings and errors
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:
+locus=01:quote=01'
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l1='ls -1'
+
+# add an "alert" alias for long running commands.  use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc)
+if ! shopt -oq posix; then
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        . /etc/bash_completion
+    fi
 fi
 
 # if the command-not-found package is installed, use it
