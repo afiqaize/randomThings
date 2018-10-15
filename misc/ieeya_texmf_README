@@ -1,0 +1,4 @@
+To install new latex stuff:
+1- Update this dir as needed by the package in question (gotten off CTAN etc)
+2- mktexlsr ~/texmf/
+3- updmap -user <anything-needed-by-the-package>

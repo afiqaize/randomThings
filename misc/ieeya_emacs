@@ -12,8 +12,9 @@
  )
 
 ;; text highlighting-copying stuff
+(when (fboundp 'electric-indent-mode) (electric-indent-mode -1)) ;; don't be auto-indenting augh
 (transient-mark-mode 1) ; highlight text selection
-(delete-selection-mode 1) ; delete seleted text when typing
+(delete-selection-mode 1) ; delete selected text when typing
 (show-paren-mode 1) ; turn on paren match highlighting
 (setq mouse-drag-copy-region t) ; turn on highlight-autocopy to kill menu
 (setq x-select-enable-clipboard t) ; things in kill menu is pastable outside emacs too
@@ -21,6 +22,43 @@
 
 ;; tabbing and spaces
 (setq-default indent-tabs-mode nil) ; stop mixed tab and space
+
+;; title bar and gnome tab to contain current file name
+;; https://emacs.stackexchange.com/questions/16834/how-to-change-the-title-from-emacshost-to-file-name
+(setq-default frame-title-format
+              '(:eval
+                (format "%s %s"
+                        (buffer-name)
+                        (cond
+                         (buffer-file-truename
+                          (concat "(" buffer-file-truename ")"))
+                         (dired-directory
+                          (concat "{" dired-directory "}"))
+                         (t
+                          "[no file]")))))
+
+;; default font and size
+(defun fontify-frame (frame)
+  ;; get the frame properties
+  ;; to see it printed out in action, open emacs in lisp mode (plain 'emacs (-nw)' with no file)
+  ;; and do like (a-function some-arg) and C-j to evaluate the function
+  (set 'frame-att (frame-monitor-attributes nil))
+  ;; only for GUI, terminal font size decided by terminal itself...
+  (cond ((eq (car (car frame-att)) 'name)
+        (cond ((string= (cdr (car frame-att)) "eDP-1")
+               (set-frame-parameter frame 'font "Monospace 15"))
+              ((string= (cdr (car frame-att)) "DP-1-1")
+               (set-frame-parameter frame 'font "Monospace 11"))
+              (t (set-frame-parameter frame 'font "Monospace 12"))))))
+
+;; fontify current frame
+(fontify-frame nil)
+
+;; fontify any future frames
+(push 'fontify-frame after-make-frame-functions)
+
+;; timed check of which screen and adjust frame accordingly
+(run-with-timer 3 1 'fontify-frame nil)
 
 ;; automatic 2 vertical columns when opening 2 files
 (defun toggle-window-split ()
