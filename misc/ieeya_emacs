@@ -36,6 +36,17 @@
                           (concat "{" dired-directory "}"))
                          (t
                           "[no file]")))))
+(setq-default icon-title-format
+              '(:eval
+                (format "%s %s"
+                        (buffer-name)
+                        (cond
+                         (buffer-file-truename
+                          (concat "(" buffer-file-truename ")"))
+                         (dired-directory
+                          (concat "{" dired-directory "}"))
+                         (t
+                          "[no file]")))))
 
 ;; default font and size
 (defun fontify-frame (frame)
