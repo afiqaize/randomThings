@@ -25,28 +25,19 @@
 
 ;; title bar and gnome tab to contain current file name
 ;; https://emacs.stackexchange.com/questions/16834/how-to-change-the-title-from-emacshost-to-file-name
-(setq-default frame-title-format
-              '(:eval
-                (format "%s %s"
-                        (buffer-name)
-                        (cond
-                         (buffer-file-truename
-                          (concat "(" buffer-file-truename ")"))
-                         (dired-directory
-                          (concat "{" dired-directory "}"))
-                         (t
-                          "[no file]")))))
-(setq-default icon-title-format
-              '(:eval
-                (format "%s %s"
-                        (buffer-name)
-                        (cond
-                         (buffer-file-truename
-                          (concat "(" buffer-file-truename ")"))
-                         (dired-directory
-                          (concat "{" dired-directory "}"))
-                         (t
-                          "[no file]")))))
+(setq filename-as-title
+      '(:eval
+        (format "%s %s"
+                (buffer-name)
+                (cond
+                 (buffer-file-truename
+                  (concat "(" buffer-file-truename ")"))
+                 (dired-directory
+                  (concat "{" dired-directory "}"))
+                 (t
+                  "[no file]")))))
+(setq-default frame-title-format filename-as-title)
+(setq-default icon-title-format filename-as-title)
 
 ;; default font and size
 (defun fontify-frame (frame)
