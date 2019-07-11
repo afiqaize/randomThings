@@ -1,0 +1,58 @@
+(custom-set-variables
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(inhibit-startup-screen t))
+(custom-set-faces
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ )
+
+;; text highlighting-copying stuff
+(transient-mark-mode 1) ; highlight text selection
+(delete-selection-mode 1) ; delete seleted text when typing
+(show-paren-mode 1) ; turn on paren match highlighting
+(setq mouse-drag-copy-region t) ; turn on highlight-autocopy to kill menu
+(setq x-select-enable-clipboard t) ; things in kill menu is pastable outside emacs too
+;(setq show-paren-style 'expression) ; highlight entire bracket expression
+
+;; tabbing and spaces
+(setq-default indent-tabs-mode nil) ; stop mixed tab and space
+
+;; show directory in mini tab at bottom ie status bar
+;; https://stackoverflow.com/questions/2903426/display-path-of-file-in-status-bar
+(require 'uniquify)
+(setq uniquify-buffer-name-style 'reverse)
+
+;; automatic 2 vertical columns when opening 2 files
+(defun toggle-window-split ()
+  (interactive)
+  (if (= (count-windows) 2)
+      (let* ((this-win-buffer (window-buffer))
+                  (next-win-buffer (window-buffer (next-window)))
+                       (this-win-edges (window-edges (selected-window)))
+                            (next-win-edges (window-edges (next-window)))
+                                 (this-win-2nd (not (and (<= (car this-win-edges)
+                                                              (car next-win-edges))
+                                                              (<= (cadr this-win-edges)
+                                                                   (cadr next-win-edges)))))
+                                      (splitter
+                                             (if (= (car this-win-edges)
+                                                         (car (window-edges (next-window))))
+                                                   'split-window-horizontally
+                                               'split-window-vertically)))
+        (delete-other-windows)
+        (let ((first-win (selected-window)))
+            (funcall splitter)
+              (if this-win-2nd (other-window 1))
+                (set-window-buffer (selected-window) this-win-buffer)
+                  (set-window-buffer (next-window) next-win-buffer)
+                    (select-window first-win)
+                      (if this-win-2nd (other-window 1))))))
+
+(define-key ctl-x-4-map "t" 'toggle-window-split)
+
+(add-hook 'emacs-startup-hook 'toggle-window-split)
