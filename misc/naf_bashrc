@@ -33,6 +33,9 @@ alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 
+## a few other env commands
+alias matplotenv='source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_94 x86_64-slc6-gcc62-opt'
+
 ## go directly to work area (sonas)
 if [ `hostname | grep "naf-cms"` ] || [ `hostname | grep "nafhh-cms"` ]; then
     workarea
@@ -178,7 +181,11 @@ rootenv () {
         grab_from_cvmfs gcc 4.9.3
         grab_from_cvmfs ROOT 5.34.25-8ef6d
     elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
-        grab_from_cvmfs gcc 6.2.0
+        #grab_from_cvmfs gcc 6.2.0
+        grab_from_cvmfs gcc 6.2.0-2bc78
+        # WTF IS HAPPENING TO GCC SETUP SCRIPT 31/01/2019
+        export LCGPLAT=x86_64-slc6-gcc62-opt
+
         grab_from_cvmfs GSL 2.1-36ee5
         grab_from_cvmfs tbb 2018_U1-d3621
         grab_from_cvmfs blas 20110419-f373c
@@ -202,7 +209,7 @@ makeSelList () {
         echo 'Base directory not set, unable to find ntuples for selectionList text files!!'
         echo 'Try: /nfs/dust/cms/group/topcmsdesy/ntuple13tev/2017_04_19_TAG_V035 (dirToExclude1 dirToExclude2 ...)'
     else
-        baseDir=$1
+        local baseDir=$1
         rm selectionList*.txt
 
         l1 ${baseDir}/*.root >& selectionList_all.txt
@@ -225,6 +232,27 @@ makeSelList () {
         grep -v 'Htottbar' selectionList_all.txt | grep -v '#' >& selectionList_bg.txt # everything non-signal
 
         echo 'Done making selectionList text files from directory '${baseDir}
+    fi
+}
+
+## ls contents of root files
+## usage: rootfls filename
+rootfls() {
+    local filename=$1
+    root -l ${filename} -e '_file0->ls()' -q
+}
+
+## ls branches of a given tree (must know the name)
+## usage: roottls filename treename regexp
+roottls() {
+    local filename=$1
+    local treename=$2
+    local regexp=$3
+
+    if [ -z ${regexp} ]; then
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
+    else
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
     fi
 }
 

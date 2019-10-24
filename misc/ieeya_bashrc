@@ -57,6 +57,27 @@ rootenv () {
     fi
 }
 
+## ls contents of root files
+## usage: rootfls filename
+rootfls() {
+    local filename=$1
+    root -l ${filename} -e '_file0->ls()' -q
+}
+
+## ls branches of a given tree (must know the name)
+## usage: roottls filename treename regexp
+roottls() {
+    local filename=$1
+    local treename=$2
+    local regexp=$3
+
+    if [ -z ${regexp} ]; then
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
+    else
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
+    fi
+}
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS
 shopt -s checkwinsize
@@ -122,7 +143,7 @@ export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:
 locus=01:quote=01'
 
 # some more ls aliases
-alias ll='ls -alF'
+alias ll='ls -ltrh'
 alias la='ls -A'
 alias l1='ls -1'
 
