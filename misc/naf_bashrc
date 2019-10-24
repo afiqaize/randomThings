@@ -239,15 +239,26 @@ makeSelList () {
 ## usage: rootfls filename
 rootfls() {
     local filename=$1
+
+    if [ -z ${filename} ]; then
+        echo 'usage: rootfls filename'
+        return
+    fi
+
     root -l ${filename} -e '_file0->ls()' -q
 }
 
 ## ls branches of a given tree (must know the name)
-## usage: roottls filename treename regexp
+## usage: roottls filename treename <regexp>
 roottls() {
     local filename=$1
     local treename=$2
     local regexp=$3
+
+    if [ -z ${filename} ] || [ -z ${treename} ]; then
+        echo 'usage: rootfls filename treename <regexp>'
+        return
+    fi
 
     if [ -z ${regexp} ]; then
         root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
