@@ -89,6 +89,17 @@ roottls() {
     fi
 }
 
+## get the hex bit of a root color index
+roothexcolor() {
+    local rootcolor=$1
+    if [ -z ${rootcolor} ]; then
+	echo 'usage: roothexcolor <color index>'
+        return
+    fi
+
+    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
+}
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS
 shopt -s checkwinsize

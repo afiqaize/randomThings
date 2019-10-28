@@ -267,6 +267,17 @@ roottls() {
     fi
 }
 
+## get the hex bit of a root color index
+roothexcolor() {
+    local rootcolor=$1
+    if [ -z ${rootcolor} ]; then
+        echo 'usage: roothexcolor <color index>'
+        return
+    fi
+
+    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
+}
+
 ## beautiful printout of the current git branch when in repository:
 function parse_git_branch_and_add_brackets {
   git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\[\1\]/'
