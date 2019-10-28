@@ -91,7 +91,7 @@ roottls() {
 
 ## get the hex bit of a root color index
 roothexcolor() {
-    local rootcolor=$1
+    local rootcolor="$1"
     if [ -z ${rootcolor} ]; then
 	echo 'usage: roothexcolor <color index>'
         return
