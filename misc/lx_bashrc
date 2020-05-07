@@ -1,4 +1,8 @@
+#!/bin/bash
 # .bashrc
+
+## if not running interactively, don't do anything
+[ -z "$PS1" ] && return
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
@@ -8,26 +12,257 @@ fi
 # User specific aliases and functions
 alias workarea='cd /afs/cern.ch/work/a/afiqaize/'
 alias nemacs='emacs -nw'
-alias uienv='source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh'
-alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
-alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
-alias voauth='voms-proxy-init -voms cms'
 alias ..='cd ..'
 alias ...='cd ../../'
 alias ....='cd ../../../'
 alias ll='ls -ltrh'
 alias la='ls -a'
-alias ssh='ssh -Y'
-alias psa='ps -fu $USER; date'
-alias lpr40='lpr -P 40-RB-HPCOR' # to print at this printer in B40
+alias l1='ls -1'
+alias ssh='ssh -X'
+alias psa='date; ps -fu $USER'
+
+## buncha grid computing stuff
+alias voauth='voms-proxy-init -voms cms --valid 168:00'
+alias voinfo='voms-proxy-info'
+alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
-alias das='python /afs/cern.ch/user/a/afiqaize/das_client.py'
-alias root5env='source /afs/cern.ch/sw/lcg/contrib/gcc/4.6/x86_64-slc6-gcc46-opt/setup.sh && source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.34.14/x86_64-slc6-gcc46-opt/root/bin/thisroot.sh'
 
-# Go directly to work area
-workarea
+alias uienv='source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh'
+alias lpr40='lpr -P 40-RB-HPCOR' # to print at this printer in B40
+
+## go directly to work area (sonas)
+if [ `hostname | grep "lxplus"` ]; then
+    workarea
+fi
+
+## sync'd up with many one-liner HTC submission
+condorDir=""
+
+## not-so-general case of picking random softwares off cvmfs
+grab_from_cvmfs () {
+    local sftName=$1
+    local sftVer=$2
+    local sftLoad=$3
+
+    if [ -z ${sftName} ] || [ -z ${sftVer} ]; then
+        echo 'Software name and version to be picked up must be provided!!'
+        echo 'Usage: grab_from_cvmfs SOFTWARE VERSION LOADTYPE'
+        echo 'SOFTWARE is obvious, it must be available in /cvmfs/sft.cern.ch/lcg/releases/'
+        echo 'VERSION includes the hash assigned by cvmfs e. g. for ROOT: 6.14.02-7ef3a'
+        echo 'LOADTYPE may be lib, path or all: updating LD_LIBRARY_PATH, PATH or both'
+        echo 'Note that some softwares (e. g. gcc, ROOT) have hardcoded load settings ignoring LOADTYPE'
+        echo
+        return
+    fi
+
+    if [ "${sftLoad}" != 'lib' ] && [ "${sftLoad}" != 'path' ] && [ "${sftLoad}" != 'all' ]; then
+        sftLoad='lib'
+    fi
+
+    ## well where else do we take it from
+    local sftSrc='/cvmfs/sft.cern.ch/lcg/releases'
+    local machineArch=$(/cvmfs/cms.cern.ch/bin/cmsos)
+    machineArch=$(uname -p)"-"${machineArch%%_*}
+
+    local gccDir=$(which gcc)
+    if [ ${sftName} != 'gcc' ] && [ -z $(echo ${gccDir} | grep ${sftSrc}) ]; then
+        echo 'GCC compiler is not from '${sftSrc}'!! Update by doing grab_from_cvmfs gcc VERSION'
+        grab_from_cvmfs
+
+        echo 'Correct version might be found by consulting the content of '${sftSrc}'/'${sftName}'/'${sftVer}
+        echo 'There should be a dir corresponding to the architecture '${machineArch}
+        echo
+        return
+    fi
+
+    # define the commands to load the desired software
+    local sftDir=${sftSrc}
+    local sftCmd=()
+
+    ## assign the directories to look for
+    if [ ${sftName} = 'gcc' ]; then
+        sftDir=${sftSrc}'/'${sftName}'/'${sftVer}'/'${machineArch}
+    else
+        sftDir=${sftDir}'/'${sftName}'/'${sftVer}'/'${LCGPLAT}
+    fi
+
+    local sftDep=''
+    local depList=()
+
+    if [ ! -d ${sftDir} ]; then
+        echo 'Software '${sftName}' '${sftVer}' not found at directory '${sftDir}
+        return
+    else
+        echo 'Picking up '${sftName}' '${sftVer}' from '${sftDir}'...'
+
+        ## for some special softwares, define the commands here (and the checks! (which confusingly can't be OR'd))
+        if [ ${sftName} = 'gcc' ]; then
+            if [ -z ${LCGPLAT} ]; then
+                sftCmd=('source' "${sftDir}/setup.sh")
+            elif [ ${LCGPLAT} != $(source "${sftDir}/setup.sh"; echo ${LCGPLAT}) ]; then
+                sftCmd=('source' "${sftDir}/setup.sh")
+            fi
+        elif [ ${sftName} = 'ROOT' ]; then
+            if [ -z ${ROOTSYS} ]; then
+                sftCmd=('source' "${sftDir}/bin/thisroot.sh")
+            elif [ ${ROOTSYS} != $(source "${sftDir}/bin/thisroot.sh"; echo ${ROOTSYS}) ]; then
+                sftCmd=('source' "${sftDir}/bin/thisroot.sh")
+            fi
+        fi
+
+        ## otherwise assume it's just about updating LD_LIB_PATH and/or PATH
+        if [ ${#sftCmd[@]} -lt 1 ]; then
+            echo 'Pickup mode: '${sftLoad}
+            if [ ${sftLoad} = 'lib' ] && [ -d ${sftDir}/lib ]; then
+                if [ -z $(echo ${LD_LIBRARY_PATH} | grep -e "${sftDir}/lib" ) ]; then
+                    sftCmd=('export' "LD_LIBRARY_PATH=${sftDir}/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}")
+                fi
+            elif [ ${sftLoad} = 'path' ] && [ -d ${sftDir}/bin ]; then
+                if [ -z $(echo ${PATH} | grep -e "${sftDir}/bin" ) ]; then
+                    sftCmd=('export' "PATH=${sftDir}/bin/${PATH:+:$PATH}")
+                fi
+            elif [ ${sftLoad} = 'all' ]; then
+                if [ -z $(echo ${LD_LIBRARY_PATH} | grep -e "${sftDir}/lib" ) ] && [ -d ${sftDir}/lib ]; then
+                    grab_from_cvmfs ${sftName} ${sftVer} 'lib'
+                fi
+
+                if [ -z $(echo ${PATH} | grep -e "${sftDir}/bin" ) ] && [ -d ${sftDir}/bin ]; then
+                    grab_from_cvmfs ${sftName} ${sftVer} 'path'
+                fi
+            fi
+        fi
+
+        if [ ${#sftCmd[@]} -lt 1 ]; then
+            echo 'The request and subsequent checks resulted in to nothing to be done...'
+            echo
+            return
+        fi
+
+        "${sftCmd[@]}"
+
+        if [ -f ${sftDir}"/.buildinfo_${sftName}.txt" ]; then
+            echo ${sftName}' '${sftVer}' might have dependencies, listing them up here...'
+
+            sftDep=$(cat ${sftDir}"/.buildinfo_${sftName}.txt" | tr -d '[:space:]')
+            sftDep=${sftDep##*DEPENDS:}
+
+            if [ ${sftDep} ]; then
+                depList=(${sftDep//,/ })
+                for iDep in "${depList[@]}"; do
+                    ## this recursive loading is monstrous and most definitely will screw stuff up
+                    #grab_from_cvmfs ${iDep%%-*} ${iDep#*-} 'lib'
+
+                    echo ${iDep%%-*} ${iDep#*-}
+                done
+            fi
+
+            echo 'Please note the limited automatization; the list may not be perfect!!'
+            echo 'Do cat '${sftDir}"/.buildinfo_${sftName}.txt"' to be sure nothing is amiss...'
+        fi
+        echo
+    fi
+}
+
+## and now implement some common grabs in terms of the above!
+rootenv () {
+    local whatToGrab=$1
+    if [ -z ${whatToGrab} ]; then
+        echo 'Which ROOT to grab if nothing is specified?'
+        return
+    fi
+
+    if [ ${whatToGrab} = '5' ] || [ ${whatToGrab} = '5.34' ]; then
+        grab_from_cvmfs gcc 4.9.3
+        grab_from_cvmfs ROOT 5.34.25-8ef6d
+    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
+        #grab_from_cvmfs gcc 6.2.0
+        grab_from_cvmfs gcc 6.2.0-2bc78
+        # WTF IS HAPPENING TO GCC SETUP SCRIPT 31/01/2019
+        export LCGPLAT=x86_64-slc6-gcc62-opt
+
+        grab_from_cvmfs GSL 2.1-36ee5
+        grab_from_cvmfs tbb 2018_U1-d3621
+        grab_from_cvmfs blas 20110419-f373c
+        grab_from_cvmfs ROOT 6.14.00-bc766
+    elif [ ${whatToGrab} = 'naf' ]; then
+        cmsmodule
+        module load python/2.7
+        source /cvmfs/sft.cern.ch/lcg/releases/gcc/6.2.0/x86_64-slc6/setup.sh
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cvmfs/sft.cern.ch/lcg/releases/tbb/2017_U5-8f5dc/x86_64-slc6-gcc62-opt/lib/
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cvmfs/sft.cern.ch/lcg/releases/blas/20110419-e1974/x86_64-slc6-gcc62-opt/lib/
+        source /nfs/dust/cms/user/afiqaize/cms//sft/root61294/bin/thisroot.sh
+    fi
+}
+
+## go up multiple dirs: cdup N to go up N levels
+cdup () { pushd .; echo; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; echo; }
+
+## ls contents of root files
+## usage: rootfls filename
+rootfls() {
+    local filename="$1"
+
+    if [ -z ${filename} ]; then
+        echo 'usage: rootfls filename'
+        return
+    fi
+
+    root -l ${filename} -e '_file0->ls()' -q
+}
+
+## ls branches of a given tree (must know the name)
+## usage: roottls filename treename <regexp>
+roottls() {
+    local filename="$1"
+    local treename="$2"
+    local regexp="$3"
+
+    if [ -z ${filename} ] || [ -z ${treename} ]; then
+        echo 'usage: rootfls filename treename <regexp>'
+        return
+    fi
+
+    if [ -z ${regexp} ]; then
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
+    else
+        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
+    fi
+}
+
+## cat out tree branches
+## usage: roottcat filename treename branch_expression <column_width> <cut_expression>
+roottcat() {
+    local filename="$1"
+    local treename="$2"
+    local branchexp="$3"
+    local colwidth="$4"
+    local cutexp="$5"
+
+    if [ -z ${filename} ] || [ -z ${treename} ] || [ -z ${branchexp} ]; then
+        echo 'usage: rootfls filename treename branch_expression <column_width> <cut_expression>'
+        return
+    fi
+
+    if [ -z ${colwidth} ]; then
+        colwidth='13'
+    fi
+
+    root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'", "colsize='${colwidth}'");' -q
+}
+
+## get the hex bit of a root color index
+roothexcolor() {
+    local rootcolor="$1"
+    if [ -z ${rootcolor} ]; then
+        echo 'usage: roothexcolor <color index>'
+        return
+    fi
+
+    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
+}
 
 # SSH Color
 # If not running interactively, don't do anything

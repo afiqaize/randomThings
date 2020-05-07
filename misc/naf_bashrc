@@ -26,7 +26,8 @@ alias psa='date; ps -fu $USER'
 alias cmsmodule='module use -a /afs/desy.de/group/cms/modulefiles && module load cmssw && module load git/1.9'
 
 ## buncha grid computing stuff
-alias voauth='voms-proxy-init -voms cms'
+alias voauth='voms-proxy-init -voms cms --valid 168:00'
+alias voinfo='voms-proxy-info'
 alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
 alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
@@ -44,7 +45,7 @@ fi
 ## sync'd up with many one-liner HTC submission
 condorDir="/nfs/dust/cms/user/afiqaize/cms/sft/condor"
 
-## general case of picking random softwares off cvmfs
+## not-so-general case of picking random softwares off cvmfs
 grab_from_cvmfs () {
     local sftName=$1
     local sftVer=$2
@@ -238,7 +239,7 @@ makeSelList () {
 ## ls contents of root files
 ## usage: rootfls filename
 rootfls() {
-    local filename=$1
+    local filename="$1"
 
     if [ -z ${filename} ]; then
         echo 'usage: rootfls filename'
@@ -251,9 +252,9 @@ rootfls() {
 ## ls branches of a given tree (must know the name)
 ## usage: roottls filename treename <regexp>
 roottls() {
-    local filename=$1
-    local treename=$2
-    local regexp=$3
+    local filename="$1"
+    local treename="$2"
+    local regexp="$3"
 
     if [ -z ${filename} ] || [ -z ${treename} ]; then
         echo 'usage: rootfls filename treename <regexp>'
@@ -265,6 +266,27 @@ roottls() {
     else
         root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
     fi
+}
+
+## cat out tree branches
+## usage: roottcat filename treename branch_expression <column_width> <cut_expression>
+roottcat() {
+    local filename="$1"
+    local treename="$2"
+    local branchexp="$3"
+    local colwidth="$4"
+    local cutexp="$5"
+
+    if [ -z ${filename} ] || [ -z ${treename} ] || [ -z ${branchexp} ]; then
+        echo 'usage: rootfls filename treename branch_expression <column_width> <cut_expression>'
+        return
+    fi
+
+    if [ -z ${colwidth} ]; then
+        colwidth='13'
+    fi
+
+    root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'", "colsize='${colwidth}'");' -q
 }
 
 ## get the hex bit of a root color index
