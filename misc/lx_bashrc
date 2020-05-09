@@ -39,7 +39,17 @@ if [ `hostname | grep "lxplus"` ]; then
 fi
 
 ## sync'd up with many one-liner HTC submission
-condorDir=""
+condorDir="/afs/cern.ch/work/a/afiqaize/sft/condor/"
+
+## check all condor log files in a given dir
+condor_check() {
+    local logdir=$1
+    if [ -z ${logdir} ]; then
+        logdir="."
+    fi
+
+    find ${logdir} -type f -name "*.o*" | xargs -I % sh -c 'tail -1 % | grep -q -F "Job execution ends at"; if (($?)); then echo "% did not finish successfully"; fi'
+}
 
 ## not-so-general case of picking random softwares off cvmfs
 grab_from_cvmfs () {
