@@ -35,9 +35,17 @@ alias startPO='cd /home/afiqaize/Downloads/Files/pokemon-online/bin/; ./Pokemon-
 cdup () { pushd .; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; }
 
 nafcms () {
-    if [ -z "$1" ]; then
+    local nodearg=$1
+
+    if [ -z "${nodearg}" ]; then
         ssh afiqaize@naf-desy-cms.desy.de
+    elif [ "${nodearg}" = "SL6" ] || [ "${nodearg}" = "sl6" ]; then
+        ssh afiqaize@naf-desy-cms-sl6.desy.de
+    elif [ "${nodearg}" = "EL7" ] || [ "${nodearg}" = "el7" ]; then
+        ssh afiqaize@naf-desy-cms-el7.desy.de
     else
+        # naf-cms11 - naf-cms13 (SL6)
+        # naf-cms14 - naf-cms16 (EL7)
         nNAF=${1}
         ssh afiqaize@naf-cms${nNAF}.desy.de
     fi
@@ -78,7 +86,7 @@ roottls() {
     local regexp=$3
 
     if [ -z ${filename} ] || [ -z ${treename} ]; then
-	echo 'usage: rootfls filename treename <regexp>'
+	echo 'usage: roottls filename treename <regexp>'
         return
     fi
 
@@ -99,6 +107,12 @@ roothexcolor() {
 
     root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
 }
+
+
+## prefit school-related stuff
+alias pysecdecenv='export SECDEC_CONTRIB=/home/afiqaize/pysecdec-1-4-4/; export PYTHONPATH=/home/afiqaize/pysecdec-1-4-4/pySecDec-1.4.4:$PYTHONPATH'
+
+## --------------------------------------------------------------------------------------------------------------- ##
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS
