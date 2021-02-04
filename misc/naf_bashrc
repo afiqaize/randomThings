@@ -35,6 +35,20 @@ alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 
 ## a few other env commands
+lcgenv() {
+    local lcgdir=${1}
+    local sftarch=${2}
+    if [ -z ${lcgdir} ] || [ -z ${sftarch} ]; then
+        echo 'usage: lcgenv <lcgdir> <sftarch>'
+        echo 'running default: lcgenv LCG_98python3 x86_64-centos7-gcc10-opt'
+        echo 'run source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh to check the available lcgdir options'
+        echo 'underlying software included in each package is found at http://lcginfo.cern.ch/'
+        lcgdir='LCG_98python3'
+        sftarch='x86_64-centos7-gcc10-opt'
+    fi
+
+    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh ${lcgdir} ${sftarch}
+}
 alias matplotenv='source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_94 x86_64-slc6-gcc62-opt'
 
 ## go directly to work area (sonas)
@@ -211,6 +225,32 @@ rootenv () {
     fi
 }
 
+## function to set terminal title
+## https://askubuntu.com/questions/636944/how-to-change-the-title-of-the-current-terminal-tab-using-only-the-command-line  
+function terminal_tab_title() {
+  if [[ -z "$ORIG" ]]; then
+    ORIG=$PS1
+  fi
+  TITLE="\[\e]2;$*\a\]"
+  PS1=${ORIG}${TITLE}
+}
+export -f terminal_tab_title
+
+## head and tail in one go
+## note: not usable by xargs, but usable by sh invoked by xargs
+hatn () {
+    if [ -z ${2} ]; then
+        head ${1}
+        echo
+        tail ${1}
+    else
+        head ${1} ${2}
+        echo
+        tail ${1} ${2}
+    fi
+}
+export -f hatn
+
 ## go up multiple dirs: cdup N to go up N levels
 cdup () { pushd .; echo; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; echo; }
 
@@ -258,9 +298,9 @@ rootfls() {
     fi
 
     if [ -z ${dirname} ]; then
-        root -l ${filename} -e '_file0->ls()' -q
+        root -l "${filename}" -e '_file0->ls()' -q
     else
-        root -l ${filename} -e '_file0->cd("'${dirname}'"); _file0->ls()' -q
+        root -l "${filename}" -e '_file0->cd("'"${dirname}"'"); _file0->ls()' -q
     fi
 }
 
@@ -271,15 +311,15 @@ roottls() {
     local treename="$2"
     local regexp="$3"
 
-    if [ -z ${filename} ] || [ -z ${treename} ]; then
-        echo 'usage: rootfls filename treename <regexp>'
+    if [ -z "${filename}" ] || [ -z "${treename}" ]; then
+        echo 'usage: roottls filename treename <regexp>'
         return
     fi
 
-    if [ -z ${regexp} ]; then
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
+    if [ -z "${regexp}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print();' -q
     else
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print("'"${regexp}"'");' -q
     fi
 }
 
@@ -292,27 +332,43 @@ roottcat() {
     local cutexp="$4"
     local colwidth="$5"
 
-    if [ -z ${filename} ] || [ -z ${treename} ] || [ -z ${branchexp} ]; then
-        echo 'usage: rootfls filename treename branch_expression <cut_expression> <column_width>'
+    if [ -z "${filename}" ] || [ -z "${treename}" ] || [ -z "${branchexp}" ]; then
+        echo 'usage: roottcat filename treename branch_expression <cut_expression> <column_width>'
         return
     fi
 
-    if [ -z ${colwidth} ]; then
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'");' -q
+    if [ -z "${colwidth}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'");' -q
     else
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'", "colsize='${colwidth}'");' -q
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'", "colsize='"${colwidth}"'");' -q
     fi
+}
+
+# cat out histograms
+# technically all root named objects, so usable also for tgraphs etc
+# more verbose version of roottls when used on ttrees
+roothcat () 
+{ 
+    local filename="$1"
+    local histname="$2"
+
+    if [ -z "${filename}" ] || [ -z "${histname}" ]; then
+        echo 'usage: roothcat filename histname'
+        return
+    fi
+
+    root -l "${filename}" -e 'TNamed *h1 = (TNamed *) _file0->Get("'"${histname}"'"); h1->Print("all");' -q
 }
 
 ## get the hex bit of a root color index
 roothexcolor() {
     local rootcolor="$1"
-    if [ -z ${rootcolor} ]; then
+    if [ -z "${rootcolor}" ]; then
         echo 'usage: roothexcolor <color index>'
         return
     fi
 
-    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
+    root -l -e 'TColor *color = gROOT->GetColor('"${rootcolor}"'); std::cout << color->AsHexString() << std::endl;' -q
 }
 
 ## beautiful printout of the current git branch when in repository:

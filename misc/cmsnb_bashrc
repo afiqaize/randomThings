@@ -30,7 +30,9 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias psa="date; ps -fu $USER"
 alias nemacs='emacs -nw'
-alias startPO='cd /home/afiqaize/Downloads/Files/pokemon-online/bin/; ./Pokemon-Online > /dev/null 2>&1 & cd -'
+
+# botting webby
+export PATH="$PATH:/home/afiqaize/chromedriver_linux64/chromedriver"
 
 ## function to set terminal title
 ## https://askubuntu.com/questions/636944/how-to-change-the-title-of-the-current-terminal-tab-using-only-the-command-line  
@@ -136,32 +138,37 @@ rootenv () {
 ## ls contents of root files
 ## usage: rootfls filename
 rootfls() {
-    local filename=$1
+    local filename="$1"
+    local dirname="$2"
 
     if [ -z ${filename} ]; then
-        echo 'usage: rootfls filename'
-	return
+        echo 'usage: rootfls filename <dirname>'
+        return
     fi
 
-    root -l ${filename} -e '_file0->ls()' -q
+    if [ -z ${dirname} ]; then
+        root -l "${filename}" -e '_file0->ls()' -q
+    else
+        root -l "${filename}" -e '_file0->cd("'"${dirname}"'"); _file0->ls()' -q
+    fi
 }
 
 ## ls branches of a given tree (must know the name)
 ## usage: roottls filename treename <regexp>
 roottls() {
-    local filename=$1
-    local treename=$2
-    local regexp=$3
+    local filename="$1"
+    local treename="$2"
+    local regexp="$3"
 
-    if [ -z ${filename} ] || [ -z ${treename} ]; then
-	echo 'usage: roottls filename treename <regexp>'
+    if [ -z "${filename}" ] || [ -z "${treename}" ]; then
+        echo 'usage: roottls filename treename <regexp>'
         return
     fi
 
-    if [ -z ${regexp} ]; then
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
+    if [ -z "${regexp}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print();' -q
     else
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print("'"${regexp}"'");' -q
     fi
 }
 
@@ -174,44 +181,44 @@ roottcat() {
     local cutexp="$4"
     local colwidth="$5"
 
-    if [ -z ${filename} ] || [ -z ${treename} ] || [ -z ${branchexp} ]; then
+    if [ -z "${filename}" ] || [ -z "${treename}" ] || [ -z "${branchexp}" ]; then
         echo 'usage: roottcat filename treename branch_expression <cut_expression> <column_width>'
         return
     fi
 
-    if [ -z ${colwidth} ]; then
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'");' -q
+    if [ -z "${colwidth}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'");' -q
     else
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->SetScanField(0); t->Scan("'${branchexp}'", "'${cutexp}'", "colsize='${colwidth}'");' -q
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'", "colsize='"${colwidth}"'");' -q
     fi
 }
 
 # cat out histograms
 # technically all root named objects, so usable also for tgraphs etc
 # more verbose version of roottls when used on ttrees
-roothcat() {
+roothcat () 
+{ 
     local filename="$1"
     local histname="$2"
 
-    if [ -z ${filename} ] || [ -z ${histname} ]; then
+    if [ -z "${filename}" ] || [ -z "${histname}" ]; then
         echo 'usage: roothcat filename histname'
         return
     fi
 
-    root -l ${filename} -e 'TNamed *h1 = (TNamed *) _file0->Get("'${histname}'"); h1->Print("all");' -q
+    root -l "${filename}" -e 'TNamed *h1 = (TNamed *) _file0->Get("'"${histname}"'"); h1->Print("all");' -q
 }
 
 ## get the hex bit of a root color index
 roothexcolor() {
     local rootcolor="$1"
-    if [ -z ${rootcolor} ]; then
-	echo 'usage: roothexcolor <color index>'
+    if [ -z "${rootcolor}" ]; then
+        echo 'usage: roothexcolor <color index>'
         return
     fi
 
-    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
+    root -l -e 'TColor *color = gROOT->GetColor('"${rootcolor}"'); std::cout << color->AsHexString() << std::endl;' -q
 }
-
 
 ## prefit school-related stuff
 alias pysecdecenv='export SECDEC_CONTRIB=/home/afiqaize/pysecdec-1-4-4/; export PYTHONPATH=/home/afiqaize/pysecdec-1-4-4/pySecDec-1.4.4:$PYTHONPATH'
