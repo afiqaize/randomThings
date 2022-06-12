@@ -1,132 +1,37 @@
-#!/bin/bash
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
-# updated 05/10/2018 based on Ubuntu 18.04
-
-# if not running interactively, don't do anything
+# If not running interactively, don't do anything
 case $- in
     *i*) ;;
-    *) return;;
+      *) return;;
 esac
 
-# don't put duplicate lines or lines starting with space in the history
-# see bash(1) for more options
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
 HISTCONTROL=ignoreboth
 
+# append to the history file, don't overwrite it
+shopt -s histappend
+
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=2500
-HISTFILESIZE=5000
-
-# some aliases
-alias ssh='ssh -X'
-alias lxplus='ssh afiqaize@lxplus.cern.ch'
-alias lxplus5='ssh afiqaize@lxplus5.cern.ch'
-alias bastion='ssh afiqaize@bastion.desy.de'
-alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-alias psa="date; ps -fu $USER"
-alias nemacs='emacs -nw'
-alias startPO='cd /home/afiqaize/Downloads/Files/pokemon-online/bin/; ./Pokemon-Online > /dev/null 2>&1 & cd -'
-
-cdup () { pushd .; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; }
-
-nafcms () {
-    local nodearg=$1
-
-    if [ -z "${nodearg}" ]; then
-        ssh afiqaize@naf-desy-cms.desy.de
-    elif [ "${nodearg}" = "SL6" ] || [ "${nodearg}" = "sl6" ]; then
-        ssh afiqaize@naf-desy-cms-sl6.desy.de
-    elif [ "${nodearg}" = "EL7" ] || [ "${nodearg}" = "el7" ]; then
-        ssh afiqaize@naf-desy-cms-el7.desy.de
-    else
-        # naf-cms11 - naf-cms13 (SL6)
-        # naf-cms14 - naf-cms16 (EL7)
-        nNAF=${1}
-        ssh afiqaize@naf-cms${nNAF}.desy.de
-    fi
-}
-
-rootenv () {
-    local whatToGrab=$1
-    if [ -z ${whatToGrab} ]; then
-        echo 'Which ROOT to grab if nothing is specified?'
-        return
-    fi
-
-    if [ ${whatToGrab} = '5' ] || [ ${whatToGrab} = '5.34' ]; then
-        source /home/afiqaize/root-5-34-38/bin/thisroot.sh
-    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
-        source /home/afiqaize/root-6-14-04/bin/thisroot.sh
-    fi
-}
-
-## ls contents of root files
-## usage: rootfls filename
-rootfls() {
-    local filename=$1
-
-    if [ -z ${filename} ]; then
-        echo 'usage: rootfls filename'
-	return
-    fi
-
-    root -l ${filename} -e '_file0->ls()' -q
-}
-
-## ls branches of a given tree (must know the name)
-## usage: roottls filename treename <regexp>
-roottls() {
-    local filename=$1
-    local treename=$2
-    local regexp=$3
-
-    if [ -z ${filename} ] || [ -z ${treename} ]; then
-	echo 'usage: roottls filename treename <regexp>'
-        return
-    fi
-
-    if [ -z ${regexp} ]; then
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print();' -q
-    else
-        root -l ${filename} -e 'TTree *t =  (TTree *) _file0->Get("'${treename}'"); t->Print("'${regexp}'");' -q
-    fi
-}
-
-## get the hex bit of a root color index
-roothexcolor() {
-    local rootcolor="$1"
-    if [ -z ${rootcolor} ]; then
-	echo 'usage: roothexcolor <color index>'
-        return
-    fi
-
-    root -l -e 'TColor *color = gROOT->GetColor('${rootcolor}'); std::cout << color->AsHexString() << std::endl;' -q
-}
-
-
-## prefit school-related stuff
-alias pysecdecenv='export SECDEC_CONTRIB=/home/afiqaize/pysecdec-1-4-4/; export PYTHONPATH=/home/afiqaize/pysecdec-1-4-4/pySecDec-1.4.4:$PYTHONPATH'
-
-## --------------------------------------------------------------------------------------------------------------- ##
+HISTSIZE=5000
+HISTFILESIZE=10000
 
 # check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS
+# update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
-# if set, the pattern "**" used in a pathname expansion context will
-# match all files and zero or more directories and subdirectories
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
 #shopt -s globstar
 
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
 # set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
@@ -135,14 +40,19 @@ case "$TERM" in
     xterm-color|*-256color) color_prompt=yes;;
 esac
 
-# uncomment for a colored prompt, if the terminal has the capability
-force_color_prompt=yes
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-        color_prompt=yes
+	# We have color support; assume it's compliant with Ecma-48
+	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+	# a case would tend to support setf rather than setaf.)
+	color_prompt=yes
     else
-        color_prompt=
+	color_prompt=
     fi
 fi
 
@@ -153,15 +63,14 @@ else
 fi
 unset color_prompt force_color_prompt
 
-# Commented out, don't overwrite xterm -T "title" -n "icontitle" by default.
 # If this is an xterm set the title to user@host:dir
-#case "$TERM" in
-#xterm*|rxvt*)
-#    PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"'
-#    ;;
-#*)
-#    ;;
-#esac
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -169,44 +78,204 @@ if [ -x /usr/bin/dircolors ]; then
     alias ls='ls --color=auto'
     #alias dir='dir --color=auto'
     #alias vdir='vdir --color=auto'
+
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
 
 # colored GCC warnings and errors
-export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:
-locus=01:quote=01'
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 # some more ls aliases
-alias ll='ls -ltrh'
+alias ll='ls -alF --time-style="+%Y-%m-%d %H:%M"'
 alias la='ls -A'
-alias l1='ls -1'
+alias l='ls -CF'
 
-# add an "alert" alias for long running commands.  use like so:
+# Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc)
-if ! shopt -oq posix; then
-    if [ -f /usr/share/bash-completion/bash_completion ]; then
-        . /usr/share/bash-completion/bash_completion
-    elif [ -f /etc/bash_completion ]; then
-        . /etc/bash_completion
-    fi
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
 fi
 
-# if the command-not-found package is installed, use it
-if [ -x /usr/lib/command-not-found ]; then
-    function command_not_found_handle {
-	        # check because c-n-f could've been removed in the meantime
-                if [ -x /usr/lib/command-not-found ]; then
-		       /usr/bin/python /usr/lib/command-not-found -- $1
-                   return $?
-		   else
-		       return 127
-		       fi
-		}
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
 fi
+
+## afiqaize
+## exports
+export PATH="/usr/local/cuda/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+
+## aliases
+alias psa="date; ps -fu $USER"
+alias nemacs='emacs -nw'
+
+alias lxplus='ssh afiqaize@lxplus.cern.ch'
+alias lxmount='cd ~/lxplus && sshfs afiqaize@lxplus.cern.ch:/afs/cern.ch/work/a/afiqaize/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
+alias lxunmount='cd ~ && fusermount -u ~/lxplus/'
+
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+cdup () { pushd .; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; }
+
+## function to set terminal title
+## https://askubuntu.com/questions/636944/how-to-change-the-title-of-the-current-terminal-tab-using-only-the-command-line  
+## usage: terminal_tab_title <title to set>
+function terminal_tab_title() {
+  if [[ -z "$ORIG" ]]; then
+    ORIG=$PS1
+  fi
+  TITLE="\[\e]2;$*\a\]"
+  PS1=${ORIG}${TITLE}
+}
+export -f terminal_tab_title
+
+## head and tail in one go
+## note: not usable by xargs, but usable by sh invoked by xargs
+hatn () {
+    if [ -z ${2} ]; then
+        head ${1}
+        echo
+        tail ${1}
+    else
+        head ${1} ${2}
+        echo
+        tail ${1} ${2}
+    fi
+}
+export -f hatn
+
+## login to naf
+nafcms () {
+    local nodearg=$1
+
+    if [ -z "${nodearg}" ]; then
+        ssh -X afiqaize@naf-desy-cms.desy.de
+    elif [ "${nodearg}" = "SL6" ] || [ "${nodearg}" = "sl6" ]; then
+        ssh -X afiqaize@naf-desy-cms-sl6.desy.de
+    elif [ "${nodearg}" = "EL7" ] || [ "${nodearg}" = "el7" ]; then
+        ssh -X afiqaize@naf-desy-cms-el7.desy.de
+    else
+        # naf-cms11 - naf-cms13 (SL6)
+        # naf-cms14 - naf-cms16 (EL7)
+        nNAF=${1}
+        ssh -X afiqaize@naf-cms${nNAF}.desy.de
+    fi
+}
+alias nafmount='cd ~/naf/ && sshfs afiqaize@naf-desy-cms.desy.de:/nfs/dust/cms/user/afiqaize/cms/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
+alias nafunmount='cd ~ && fusermount -u ~/naf/'
+
+#rootenv () {
+#    local whatToGrab=$1
+#    if [ -z ${whatToGrab} ]; then
+#        echo 'Which ROOT to grab if nothing is specified?'
+#        return
+#    fi
+
+#    if [ ${whatToGrab} = '5' ] || [ ${whatToGrab} = '5.34' ]; then
+#        source /home/afiqaize/root-5-34-38/bin/thisroot.sh
+#    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
+#        source /home/afiqaize/root-6-14-04/bin/thisroot.sh
+#    fi
+#}
+
+## ls contents of root files
+## usage: rootfls filename
+rootfls() {
+    local filename="$1"
+    local dirname="$2"
+
+    if [ -z ${filename} ]; then
+        echo 'usage: rootfls filename <dirname>'
+        return
+    fi
+
+    if [ -z ${dirname} ]; then
+        root -l "${filename}" -e '_file0->ls()' -q
+    else
+        root -l "${filename}" -e '_file0->cd("'"${dirname}"'"); _file0->ls()' -q
+    fi
+}
+
+## ls branches of a given tree (must know the name)
+## usage: roottls filename treename <regexp>
+roottls() {
+    local filename="$1"
+    local treename="$2"
+    local regexp="$3"
+
+    if [ -z "${filename}" ] || [ -z "${treename}" ]; then
+        echo 'usage: roottls filename treename <regexp>'
+        return
+    fi
+
+    if [ -z "${regexp}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print();' -q
+    else
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print("'"${regexp}"'");' -q
+    fi
+}
+
+## cat out tree branches
+## usage: roottcat filename treename branch_expression <cut_expression> <column_width>
+roottcat() {
+    local filename="$1"
+    local treename="$2"
+    local branchexp="$3"
+    local cutexp="$4"
+    local colwidth="$5"
+
+    if [ -z "${filename}" ] || [ -z "${treename}" ] || [ -z "${branchexp}" ]; then
+        echo 'usage: roottcat filename treename branch_expression <cut_expression> <column_width>'
+        return
+    fi
+
+    if [ -z "${colwidth}" ]; then
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'");' -q
+    else
+        root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'", "colsize='"${colwidth}"'");' -q
+    fi
+}
+
+## cat out histograms
+## technically all root named objects, so usable also for tgraphs etc
+## more verbose version of roottls when used on ttrees
+roothcat () 
+{ 
+    local filename="$1"
+    local histname="$2"
+
+    if [ -z "${filename}" ] || [ -z "${histname}" ]; then
+        echo 'usage: roothcat filename histname'
+        return
+    fi
+
+    root -l "${filename}" -e 'TNamed *h1 = (TNamed *) _file0->Get("'"${histname}"'"); h1->Print("all");' -q
+}
+
+## get the hex bit of a root color index
+roothexcolor() {
+    local rootcolor="$1"
+    if [ -z "${rootcolor}" ]; then
+        echo 'usage: roothexcolor <color index>'
+        return
+    fi
+
+    root -l -e 'TColor *color = gROOT->GetColor('"${rootcolor}"'); std::cout << color->AsHexString() << std::endl;' -q
+}
