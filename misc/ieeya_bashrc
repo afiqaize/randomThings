@@ -125,10 +125,6 @@ export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
 alias psa="date; ps -fu $USER"
 alias nemacs='emacs -nw'
 
-alias lxplus='ssh afiqaize@lxplus.cern.ch'
-alias lxmount='cd ~/lxplus && sshfs afiqaize@lxplus.cern.ch:/afs/cern.ch/work/a/afiqaize/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
-alias lxunmount='cd ~ && fusermount -u ~/lxplus/'
-
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
@@ -163,7 +159,7 @@ export -f hatn
 
 ## login to naf
 nafcms () {
-    local nodearg=$1
+    local nodearg=${1}
 
     if [ -z "${nodearg}" ]; then
         ssh -X afiqaize@naf-desy-cms.desy.de
@@ -174,14 +170,27 @@ nafcms () {
     else
         # naf-cms11 - naf-cms13 (SL6)
         # naf-cms14 - naf-cms16 (EL7)
-        nNAF=${1}
-        ssh -X afiqaize@naf-cms${nNAF}.desy.de
+        ssh -X afiqaize@naf-cms${nodearg}.desy.de
     fi
 }
 alias nafmount='cd ~/naf/ && sshfs afiqaize@naf-desy-cms.desy.de:/nfs/dust/cms/user/afiqaize/cms/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
 alias nafunmount='cd ~ && fusermount -u ~/naf/'
 
-#rootenv () {
+## login to lxplus
+lxplus () {
+    local nodearg=${1}
+
+    if [ -z "${nodearg}" ]; then
+        ssh -Y afiqaize@lxplus.cern.ch
+    else
+        ssh -Y afiqaize@lxplus${nodearg}.cern.ch
+    fi
+}
+alias lxmount='cd ~/lxplus && sshfs afiqaize@lxplus.cern.ch:/afs/cern.ch/work/a/afiqaize/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
+alias lxunmount='cd ~ && fusermount -u ~/lxplus/'
+
+rootenv () {
+    source /home/ieeya/root062604/bin/thisroot.sh
 #    local whatToGrab=$1
 #    if [ -z ${whatToGrab} ]; then
 #        echo 'Which ROOT to grab if nothing is specified?'
@@ -193,7 +202,7 @@ alias nafunmount='cd ~ && fusermount -u ~/naf/'
 #    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
 #        source /home/afiqaize/root-6-14-04/bin/thisroot.sh
 #    fi
-#}
+}
 
 ## ls contents of root files
 ## usage: rootfls filename
