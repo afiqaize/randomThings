@@ -1,8 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 ### This script creates the per-job condor submit file and does the linking with wrapper script, executable etc
-### Usage: ./condorSubmit.sh -s CONDORSUBMITTEMPLATE -w WRAPPERSCRIPT -e EXECUTABLE (-a EXECARGS -n JOBNAME -d INITDIR -l LOGDIR -i JOBINPUT -h REQHDISK -m REQMEM -t REQTIME -c JOBCOUNT -o JOBOFFSET)
+### Usage: ./condorSubmit.sh -s CONDORSUBMITTEMPLATE -w WRAPPERSCRIPT -e EXECUTABLE (-a EXECARGS -n JOBNAME -d INITDIR -l LOGDIR -i JOBINPUT -h REQHDISK -m REQMEM -t REQTIME -p REQCPU -c JOBCOUNT -o JOBOFFSET)
 ### Long args reserved for flag switches for the moment; names should be self-explanatory
+
+set -o noglob
 
 ## basic handles
 jobSub=""
@@ -13,9 +15,10 @@ jobName=""
 jobDir=""
 logDir=""
 jobInput=""
-reqHDisk=()
-reqMem=()
-reqTime=""
+reqHDisk=() # in kb
+reqMem=() # in Mb
+reqTime="" # in seconds 
+reqCpu=""
 jobCount=""
 jobMateria="200"
 jobOffset="1"
@@ -29,7 +32,7 @@ requireOS=""
 singularitySL6=0
 
 ## parse command line options.
-while getopts s:w:e:a:n:d:l:i:h:m:t:c:o:-: OPT; do
+while getopts s:w:e:a:n:d:l:i:h:m:t:p:c:o:-: OPT; do
     case "$OPT" in
         s)
             jobSub=$OPTARG
@@ -66,6 +69,9 @@ while getopts s:w:e:a:n:d:l:i:h:m:t:c:o:-: OPT; do
             ;;
         t)
             reqTime=$OPTARG
+            ;;
+        p)
+            reqCpu=$OPTARG
             ;;
         c)
             jobCount=$OPTARG
@@ -121,11 +127,19 @@ while getopts s:w:e:a:n:d:l:i:h:m:t:c:o:-: OPT; do
 done
 
 ## safety checks, default assignments
-if [ -z ${jobSub} ] || [ -z ${jobWrap} ] || [ -z ${jobExec} ]; then
-   echo "Compulsory argument -s for submit file template, -w for wrapper script or -e for executable name not provided!!"
-   echo 'Usage: ./condorSubmit.sh -s CONDORSUBMITTEMPLATE -w WRAPPERSCRIPT -e EXECUTABLE (-a EXECARGS -n JOBNAME -d INITDIR -l LOGDIR -h REQHDISK -m REQMEM -t REQTIME -c JOBCOUNT)'
+if [ -z ${jobExec} ]; then
+   echo "Compulsory argument -e for executable name not provided!!"
+   echo 'Usage: ./condorSubmit.sh -e EXECUTABLE (-s CONDORSUBMITTEMPLATE -w WRAPPERSCRIPT -a EXECARGS -n JOBNAME -d INITDIR -l LOGDIR -h REQHDISK -m REQMEM -t REQTIME -c JOBCOUNT)'
    echo "Additional settings: --run-in-tmp, --debug, --no-std-log, --cluster-log, --grid-proxy, --require-os, --sl6-singularity"
    exit 0
+fi
+
+if [ -z ${jobSub} ]; then
+    jobSub=/nfs/dust/cms/user/afiqaize/cms/sft/condor/condorParam.txt
+fi
+
+if [ -z ${jobWrap} ]; then
+    jobWrap=/nfs/dust/cms/user/afiqaize/cms/sft/condor/condorRun.sh
 fi
 
 if [ -z ${jobName} ]; then
@@ -205,6 +219,15 @@ else
     sed -i "s?__REQMEM__?$(echo ${reqMem[@]})?g" ./conSub_${jobName}.txt
 fi
 
+if [ -z ${reqCpu} ]; then
+    ## naf
+    sed -i "s?request_cpus?#request_cpus?g" ./conSub_${jobName}.txt
+    ## lxp
+    #sed -i "s?+MaxRuntime?#+MaxRuntime?g" ./conSub_${jobName}.txt
+else
+    sed -i "s?__REQCPU__?${reqCpu}?g" ./conSub_${jobName}.txt
+fi
+
 if [ -z ${reqTime} ]; then
     ## naf
     sed -i "s?+RequestRuntime?#+RequestRuntime?g" ./conSub_${jobName}.txt
@@ -249,10 +272,10 @@ if ((cluLog)); then
 fi
 
 ## SL6/EL7 choice
-if [ -z ${requireOS} ] || [ "${requireOS}" = "SL6" ] || [ "${requireOS}" = "sl6" ]; then
-    sed -i "s?#__SL6__req?req?g" ./conSub_${jobName}.txt
-elif [ "${requireOS}" = "EL7" ] || [ "${requireOS}" = "el7" ]; then
+if [ -z ${requireOS} ] || [ "${requireOS}" = "EL7" ] || [ "${requireOS}" = "el7" ]; then
     sed -i "s?#__EL7__req?req?g" ./conSub_${jobName}.txt
+elif [ "${requireOS}" = "SL6" ] || [ "${requireOS}" = "sl7" ]; then
+    sed -i "s?#__SL6__req?req?g" ./conSub_${jobName}.txt
 else
     echo "ERROR :: choice of OS not understood; only SL6 or EL7 accepted for now!"
     rm ./conSub_${jobName}.txt
@@ -265,9 +288,9 @@ if ((singularitySL6)); then
 fi
 
 ## actually submit if not in debug mode
-if ((dbgRun)); then
-    echo "Debug mode: writing submit file "./conSub_${jobName}.txt
-else
+#if ((dbgRun)); then
+    #echo "Debug mode: writing submit file "./conSub_${jobName}.txt
+if ((! dbgRun)); then
     condor_submit ./conSub_${jobName}.txt
     wait
 

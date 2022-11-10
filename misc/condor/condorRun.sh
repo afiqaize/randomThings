@@ -1,9 +1,11 @@
 #!/bin/sh
 
+set -o noglob
+
 ### not meant to be run directly; simply a wrapper executable
 export LD_LIBRARY_PATH=${LD_LIB_PATH}
 
-echo 'Job execution starts at '$(date)
+echo 'Job execution starts at '$(date)' on host '${HOSTNAME}
 echo
 
 "$@"

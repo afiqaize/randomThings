@@ -10,23 +10,24 @@ output = __LOGDIR__/__LOG__.o$(Cluster).$INT(Job_Proc_ID)
 error = __LOGDIR__/__LOG__.o$(Cluster).$INT(Job_Proc_ID)
 #log = __LOGDIR__/__LOG__.l$(Cluster).$INT(Job_Proc_ID)
 initialdir = __INITDIR__
-arguments = "__EXEC__ __ARGUMENTS__"
+arguments = __EXEC__ __ARGUMENTS__
 
 #__SL6__requirements = (OpSysAndVer == "SL6")
 #__EL7__requirements = (OpSysAndVer == "CentOS7")
-#+MySingularityImage = "/cvmfs/grid.desy.de/container/sl6"
-##+MySingularityImage = "/cvmfs/singularity.opensciencegrid.org/cmssw/cms:rhel6"
+##+MySingularityImage = "/cvmfs/grid.desy.de/container/sl6"
+#+MySingularityImage = "/cvmfs/singularity.opensciencegrid.org/cmssw/cms:rhel6"
 
 getenv = true
 environment = "LD_LIB_PATH=__LD_L_P__ JOB_PROC_ID=$INT(Job_Proc_ID)"
 
 #transfer_input_files = __INPUTFILE__
 #should_transfer_files = YES
-#when_to_transfer_output = ON_EXIT
+#when_to_transfer_output = ON_EXIT_OR_EVICT
 
 RequestDisk = __REQHDISK__
 RequestMemory = __REQMEM__
 +RequestRuntime = __REQTIME__
+request_cpus = __REQCPU__
 #+MaxRuntime = __REQTIME__
 #max_materialize = __JOBMATERIALIZE__
 
