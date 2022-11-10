@@ -15,7 +15,7 @@ alias nemacs='emacs -nw'
 alias ..='cd ..'
 alias ...='cd ../../'
 alias ....='cd ../../../'
-alias ll='ls -ltrh'
+alias ll='ls -alF --time-style="+%Y-%m-%d %H:%M"'
 alias la='ls -a'
 alias l1='ls -1'
 alias ssh='ssh -X'
@@ -23,13 +23,15 @@ alias dwgcms12='ssh afiqaize@desy-cms012.desy.de'
 alias psa='date; ps -fu $USER'
 
 ## for when working with cmssw - try to mimic cmsenv syntax
-alias cmsmodule='module use -a /afs/desy.de/group/cms/modulefiles && module load cmssw && module load git/1.9'
+alias cmsmodule='module use -a /afs/desy.de/group/cms/modulefiles && source /cvmfs/cms.cern.ch/cmsset_default.sh'
 
 ## buncha grid computing stuff
+alias gridenv='source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh'
 alias voauth='voms-proxy-init -voms cms --valid 168:00'
 alias voinfo='voms-proxy-info'
-alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
-alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
+#alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+#alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
+alias crabenv='source /cvmfs/cms.cern.ch/common/crab-setup.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
@@ -38,18 +40,29 @@ alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 lcgenv() {
     local lcgdir=${1}
     local sftarch=${2}
-    if [ -z ${lcgdir} ] || [ -z ${sftarch} ]; then
-        echo 'usage: lcgenv <lcgdir> <sftarch>'
-        echo 'running default: lcgenv LCG_98python3 x86_64-centos7-gcc10-opt'
-        echo 'run source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh to check the available lcgdir options'
-        echo 'underlying software included in each package is found at http://lcginfo.cern.ch/'
-        lcgdir='LCG_98python3'
-        sftarch='x86_64-centos7-gcc10-opt'
+
+    if [ ${lcgdir} = 'default' ]; then
+        if [ -z ${sftarch} ] || [ ${sftarch} = '100' ]; then
+            lcgdir='LCG_100'
+            sftarch='x86_64-centos7-gcc10-opt'
+        elif [ ${sftarch} = '102' ]; then
+            lcgdir='LCG_102'
+            sftarch='x86_64-centos7-gcc11-opt'
+        fi
+
+        echo 'running default: lcgenv '${lcgdir}' '${sftarch}
     fi
 
     source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh ${lcgdir} ${sftarch}
+
+    if [ -z ${lcgdir} ] || [ -z ${sftarch} ]; then
+        echo
+        echo 'usage: lcgenv <lcgdir> <sftarch>'
+        echo 'showing the available options for the given arg'
+        echo 'actual command:  source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh'
+        echo 'underlying software included in each package is found at http://lcginfo.cern.ch/'
+    fi
 }
-alias matplotenv='source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_94 x86_64-slc6-gcc62-opt'
 
 ## go directly to work area (sonas)
 if [ `hostname | grep "naf-cms"` ] || [ `hostname | grep "nafhh-cms"` ]; then
@@ -57,17 +70,8 @@ if [ `hostname | grep "naf-cms"` ] || [ `hostname | grep "nafhh-cms"` ]; then
 fi
 
 ## sync'd up with many one-liner HTC submission
-condorDir="/nfs/dust/cms/user/afiqaize/cms/sft/condor"
-
-## check all condor log files in a given dir
-condor_check() {
-    local logdir=$1
-    if [ -z ${logdir} ]; then
-        logdir="."
-    fi
-
-    find ${logdir} -type f -name "*.o*" | xargs -I % sh -c 'tail -1 % | grep -q -F "Job execution ends successfully at"; if (($?)); then echo "% did not finish successfully"; fi'
-}
+htcdir="/nfs/dust/cms/user/afiqaize/cms/sft/condor"
+source ${htcdir}/condorUtil.sh
 
 ## not-so-general case of picking random softwares off cvmfs
 grab_from_cvmfs () {
@@ -254,38 +258,6 @@ export -f hatn
 ## go up multiple dirs: cdup N to go up N levels
 cdup () { pushd .; echo; for ((i=1; i<=$1; i++)); do cd ..; done; pwd; echo; }
 
-## make selection list txt files
-makeSelList () {
-    if [ -z "$1" ]; then
-        echo 'Base directory not set, unable to find ntuples for selectionList text files!!'
-        echo 'Try: /nfs/dust/cms/group/topcmsdesy/ntuple13tev/2017_04_19_TAG_V035 (dirToExclude1 dirToExclude2 ...)'
-    else
-        local baseDir=$1
-        rm selectionList*.txt
-
-        l1 ${baseDir}/*.root >& selectionList_all.txt
-        l1 ${baseDir}/**/*.root >> selectionList_all.txt
-
-        for ((i = 2; i <= $#; i++)); do
-            eval arg=\$$i
-            echo 'Excluding files in directory '${arg}' from selectionList_all.txt'
-            toExc=${baseDir}/${arg}
-            sed -i "s?${toExc}?#${toExc}?g" selectionList_all.txt # comment, still wanna know they exist
-        done
-
-        grep 'ttbarsignalplustau' selectionList_all.txt | grep -v 'fromDilepton' | grep -v '#' >& selectionList_sm.txt # w/ syst
-
-        grep 'ttbarsignalplustau.root' selectionList_all.txt | grep -v '#' >& selectionList_ah_sm.txt # w/o syst, mainly for BDT etc
-        grep 'Htottbar' selectionList_all.txt | grep 'signalplustau' >> selectionList_ah_sm.txt
-
-        grep 'Htottbar' selectionList_all.txt >& selectionList_ah_ri.txt # everything signal
-
-        grep -v 'Htottbar' selectionList_all.txt | grep -v '#' >& selectionList_bg.txt # everything non-signal
-
-        echo 'Done making selectionList text files from directory '${baseDir}
-    fi
-}
-
 ## ls contents of root files
 ## usage: rootfls filename
 rootfls() {
@@ -303,6 +275,7 @@ rootfls() {
         root -l "${filename}" -e '_file0->cd("'"${dirname}"'"); _file0->ls()' -q
     fi
 }
+export -f rootfls
 
 ## ls branches of a given tree (must know the name)
 ## usage: roottls filename treename <regexp>
@@ -322,6 +295,7 @@ roottls() {
         root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->Print("'"${regexp}"'");' -q
     fi
 }
+export -f roottls
 
 ## cat out tree branches
 ## usage: roottcat filename treename branch_expression <cut_expression> <column_width>
@@ -343,10 +317,11 @@ roottcat() {
         root -l "${filename}" -e 'TTree *t =  (TTree *) _file0->Get("'"${treename}"'"); t->SetScanField(0); t->Scan("'"${branchexp}"'", "'"${cutexp}"'", "colsize='"${colwidth}"'");' -q
     fi
 }
+export -f roottcat
 
 # cat out histograms
 # technically all root named objects, so usable also for tgraphs etc
-# more verbose version of roottls when used on ttrees
+# T::Print() may need different options to work sensibly, however
 roothcat () 
 { 
     local filename="$1"
@@ -357,8 +332,24 @@ roothcat ()
         return
     fi
 
-    root -l "${filename}" -e 'TNamed *h1 = (TNamed *) _file0->Get("'"${histname}"'"); h1->Print("all");' -q
+    local printopt=""
+    local objtype=""
+    if [ "$(dirname ${histname})" = '.' ]; then
+        objtype="$(rootfls ${filename} | grep ${histname}';' | awk '{print $2}' | head -1)"
+    else
+        objtype="$(rootfls ${filename} $(dirname ${histname}) | grep $(basename ${histname})';' | awk '{print $2}' | head -1)"
+    fi
+
+    if [[ ${objtype} == 'TH'* ]]; then
+        printopt="all"
+    elif [[ ${objtype} == 'Roo'* ]]; then
+        printopt="V"
+    fi
+
+    echo "requested object is of type ${objtype}"
+    root -l "${filename}" -e 'TNamed *h1 = (TNamed *) _file0->Get("'"${histname}"'"); h1->Print("'"${printopt}"'");' -q
 }
+export -f roothcat
 
 ## get the hex bit of a root color index
 roothexcolor() {
