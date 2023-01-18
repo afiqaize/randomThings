@@ -24,14 +24,42 @@ alias psa='date; ps -fu $USER'
 ## buncha grid computing stuff
 alias voauth='voms-proxy-init -voms cms --valid 168:00'
 alias voinfo='voms-proxy-info'
-alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
-alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
+#alias crab2env='source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.sh'
+#alias crab3env='source /cvmfs/cms.cern.ch/crab3/crab.sh'
+alias crabenv='source /cvmfs/cms.cern.ch/common/crab-setup.sh'
 alias crabstats='for a in $(ls -1 crab); do crab status crab/${a}; done'
 alias craboutput='for a in $(ls -1 crab); do crab getoutput crab/${a}; done'
 alias crablog='for a in $(ls -1 crab); do crab getlog crab/${a}; done'
 
 alias uienv='source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh'
 alias lpr40='lpr -P 40-RB-HPCOR' # to print at this printer in B40
+
+lcgenv() {
+    local lcgdir=${1}
+    local sftarch=${2}
+
+    if [ ${lcgdir} = 'default' ]; then
+        if [ -z ${sftarch} ] || [ ${sftarch} = '100' ]; then
+            lcgdir='LCG_100'
+            sftarch='x86_64-centos7-gcc10-opt'
+        elif [ ${sftarch} = '102' ]; then
+            lcgdir='LCG_102'
+            sftarch='x86_64-centos7-gcc11-opt'
+        fi
+
+        echo 'running default: lcgenv '${lcgdir}' '${sftarch}
+    fi
+
+    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh ${lcgdir} ${sftarch}
+
+    if [ -z ${lcgdir} ] || [ -z ${sftarch} ]; then
+        echo
+        echo 'usage: lcgenv <lcgdir> <sftarch>'
+        echo 'showing the available options for the given arg'
+        echo 'actual command:  source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh'
+        echo 'underlying software included in each package is found at http://lcginfo.cern.ch/'
+    fi
+}
 
 ## go directly to work area (sonas)
 if [ `hostname | grep "lxplus"` ]; then
