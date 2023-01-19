@@ -48,6 +48,9 @@ lcgenv() {
         elif [ ${sftarch} = '102' ]; then
             lcgdir='LCG_102'
             sftarch='x86_64-centos7-gcc11-opt'
+        elif [ ${sftarch} = '102b' ]; then
+            lcgdir='LCG_102b'
+            sftarch='x86_64-centos8-gcc11-opt'
         fi
 
         echo 'running default: lcgenv '${lcgdir}' '${sftarch}
