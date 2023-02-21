@@ -171,6 +171,7 @@ sed -i "s?__LOG__?${jobName}?g" ./conSub_${jobName}.txt
 sed -i "s?__INITDIR__?${jobDir}?g" ./conSub_${jobName}.txt
 sed -i "s?__LOGDIR__?${logDir}?g" ./conSub_${jobName}.txt
 sed -i "s?__LD_L_P__?${LD_LIBRARY_PATH}?g" ./conSub_${jobName}.txt
+sed -i "s?__CMSSW_BASE__?${CMSSW_BASE}?g" ./conSub_${jobName}.txt
 
 if [ ${#jobArg[@]} -lt 1 ]; then
     sed -i "s?__ARGUMENTS__? ?g" ./conSub_${jobName}.txt
