@@ -31,8 +31,7 @@ RequestDisk = __REQHDISK__
 RequestMemory = __REQMEM__
 +RequestRuntime = __REQTIME__
 request_cpus = __REQCPU__
-#+MaxRuntime = __REQTIME__
-+MaxRuntime = 21600
++MaxRuntime = __REQTIME__
 
 #max_materialize = __JOBMATERIALIZE__
 
