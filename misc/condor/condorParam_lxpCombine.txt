@@ -25,6 +25,7 @@ environment = "cmssw_base=__CMSSW_BASE__ JOB_PROC_ID=$INT(Job_Proc_ID)"
 
 #transfer_input_files = __INPUTFILE__
 should_transfer_files = YES
+transfer_output_files = tmp/
 when_to_transfer_output = ON_EXIT_OR_EVICT
 
 RequestDisk = __REQHDISK__
