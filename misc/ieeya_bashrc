@@ -142,6 +142,28 @@ function terminal_tab_title() {
 }
 export -f terminal_tab_title
 
+# control (second ie not stellaris main screen's) parameters
+screen_parameter() {
+    local variable=${1}
+    local value=${2}
+
+    if [ -z "${variable}" ]; then
+        echo 'need to specify variable'
+        return
+    else
+        ddcutil getvcp "${variable}"
+        if [ ! -z "${value}" ]; then
+            ddcutil setvcp "${variable}" "${value}"
+            ddcutil getvcp "${variable}"
+        fi
+    fi
+}
+export -f screen_parameter
+brightness() { screen_parameter 10 $1; }
+contrast() { screen_parameter 12 $1; }
+export -f brightness
+export -f contrast
+
 ## head and tail in one go
 ## note: not usable by xargs, but usable by sh invoked by xargs
 hatn () {
@@ -189,8 +211,8 @@ lxplus () {
 alias lxmount='cd ~/lxplus && sshfs afiqaize@lxplus.cern.ch:/afs/cern.ch/work/a/afiqaize/ . -oauto_cache,reconnect,follow_symlinks && cd ~'
 alias lxunmount='cd ~ && fusermount -u ~/lxplus/'
 
-rootenv () {
-    source /home/ieeya/root062604/bin/thisroot.sh
+#rootenv () {
+#    source /home/ieeya/root062604/bin/thisroot.sh
 #    local whatToGrab=$1
 #    if [ -z ${whatToGrab} ]; then
 #        echo 'Which ROOT to grab if nothing is specified?'
@@ -202,7 +224,7 @@ rootenv () {
 #    elif [ ${whatToGrab} = '6' ] || [ ${whatToGrab} = '6.14' ]; then
 #        source /home/afiqaize/root-6-14-04/bin/thisroot.sh
 #    fi
-}
+#}
 
 ## ls contents of root files
 ## usage: rootfls filename
